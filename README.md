@@ -1,7 +1,88 @@
 # MediaForgeTool
 
+[English](README.md) | [Français](README.fr.md)
+
 MediaForgeTool is a self-hosted FastAPI MVP for downloading public media as MP4 or MP3.
 It delegates extraction to `yt-dlp` and conversion or remux work to `ffmpeg`.
+
+## Quick start
+
+### With Docker
+
+The simplest way to run MediaForgeTool is with Docker:
+
+```bash
+docker run -d \
+  --name mediaforgetool \
+  --restart unless-stopped \
+  -p 8421:8421 \
+  -v mediaforgetool-storage:/srv/mediaforgetool/storage \
+  -v mediaforgetool-temp:/srv/mediaforgetool/temp \
+  ghcr.io/gotoo77/mediaforgetool:latest
+```
+
+Open `http://localhost:8421` in a browser.
+
+Useful commands:
+
+```bash
+# View status and logs
+docker ps --filter name=mediaforgetool
+docker logs -f mediaforgetool
+
+# Stop and restart the application
+docker stop mediaforgetool
+docker start mediaforgetool
+
+# Update to the latest published image
+docker pull ghcr.io/gotoo77/mediaforgetool:latest
+docker rm -f mediaforgetool
+docker run -d \
+  --name mediaforgetool \
+  --restart unless-stopped \
+  -p 8421:8421 \
+  -v mediaforgetool-storage:/srv/mediaforgetool/storage \
+  -v mediaforgetool-temp:/srv/mediaforgetool/temp \
+  ghcr.io/gotoo77/mediaforgetool:latest
+```
+
+The named volumes preserve the SQLite database and downloaded files when the container
+is replaced.
+
+### From source
+
+Install the required system tools.
+
+Ubuntu or Debian:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y git curl ffmpeg nodejs
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+macOS with Homebrew:
+
+```bash
+brew install git ffmpeg node uv
+```
+
+Clone and start the application:
+
+```bash
+git clone https://github.com/gotoo77/mediaforgetool.git
+cd mediaforgetool
+cp .env.example .env
+uv sync --dev
+uv run python -m app.run --reload
+```
+
+Open `http://127.0.0.1:8421` in a browser. Stop the development server with `Ctrl+C`.
+The SQLite database, downloaded files and temporary files are stored under `storage/`
+and `temp/`.
+
+See [Local run](#local-run) and [Docker](#docker) for advanced configuration, Compose
+and instance-level cookies.
 
 ## Scope
 
