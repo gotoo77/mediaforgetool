@@ -267,7 +267,7 @@ textarea {
 .format-switch input:checked + .format-option {
   background: var(--ink);
   border-color: var(--ink);
-  color: #fff;
+  color: var(--paper);
 }
 
 .format-icon {
