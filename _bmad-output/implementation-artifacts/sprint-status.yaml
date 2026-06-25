@@ -48,8 +48,8 @@ development_status:
   3-4-protection-des-jobs-pauses-contre-la-purge: done
   3-5-conservation-des-temporaires-reprenables: done
   epic-3-retrospective: done
-  epic-4: backlog
-  4-1-contrats-de-domaine-et-points-d-extension: ready-for-dev
+  epic-4: in-progress
+  4-1-contrats-de-domaine-et-points-d-extension: review
   4-2-import-et-normalisation-d-un-csv-shazam: backlog
   4-3-consultation-d-une-playlist-et-revue-des-pistes: backlog
   4-4-provider-de-recherche-youtube: backlog

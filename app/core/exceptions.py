@@ -61,3 +61,18 @@ class JobTimeout(MediaForgeToolError):
 class JobPaused(MediaForgeToolError):
     code = "JOB_PAUSED"
     public_message = "The media job was paused."
+
+
+class PlaylistImporterUnknown(MediaForgeToolError):
+    code = "PLAYLIST_IMPORTER_UNKNOWN"
+    public_message = "The requested playlist importer is unavailable."
+
+
+class MediaSearchProviderUnknown(MediaForgeToolError):
+    code = "MEDIA_SEARCH_PROVIDER_UNKNOWN"
+    public_message = "The requested media search provider is unavailable."
+
+
+class ExtensionKeyAlreadyRegistered(MediaForgeToolError):
+    code = "EXTENSION_KEY_ALREADY_REGISTERED"
+    public_message = "An extension with this identifier is already registered."
