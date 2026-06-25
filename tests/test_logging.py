@@ -48,6 +48,27 @@ def test_json_formatter_includes_operational_extra_fields() -> None:
     assert payload["platform"] == "Example"
 
 
+def test_json_formatter_includes_playlist_import_context() -> None:
+    record = logging.LogRecord(
+        name="mediaforgetool.playlists",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=25,
+        msg="Playlist imported",
+        args=(),
+        exc_info=None,
+    )
+    record.event = "playlist_import_completed"
+    record.playlist_id = "playlist-1"
+    record.importer = "shazam_csv"
+
+    payload = json.loads(JsonFormatter().format(record))
+
+    assert payload["event"] == "playlist_import_completed"
+    assert payload["playlist_id"] == "playlist-1"
+    assert payload["importer"] == "shazam_csv"
+
+
 def test_json_formatter_includes_context_request_id() -> None:
     token = set_request_id("request-1")
     try:

@@ -92,9 +92,11 @@ Ouvrez `http://127.0.0.1:8421`. Arrêtez le serveur avec `Ctrl+C`.
 - nettoyage automatique des sorties expirées ;
 - conservation des travaux interrompus ou mis en pause.
 
-MediaForgeTool ne gère pas les comptes utilisateurs, OAuth, les playlists, les cookies
-envoyés par les utilisateurs ni les files distribuées. L’application est conçue pour
-un seul processus serveur.
+MediaForgeTool ne gère pas les comptes utilisateurs, OAuth, le téléchargement direct de
+playlists de plateformes, les cookies envoyés par les utilisateurs ni les files
+distribuées. Les listes importées sont traitées comme des métadonnées locales et ne
+déclenchent aucun téléchargement automatiquement. L’application est conçue pour un seul
+processus serveur.
 
 ## Prérequis
 
@@ -178,6 +180,7 @@ restauration.
 | Téléchargement final | `GET /api/jobs/{job_id}/file` |
 | Suppression | `DELETE /api/jobs/{job_id}` |
 | Nettoyage de l’historique | `DELETE /api/jobs` |
+| Import d’un CSV Shazam | `POST /api/playlists/import` |
 
 Exemple de création MP3 :
 
@@ -195,6 +198,20 @@ curl -s http://127.0.0.1:8421/api/jobs \
   -d '{"url":"https://example.invalid/media","format":"mp4","segment_start_seconds":60,"segment_end_seconds":120}'
 ```
 
+Importer un CSV Shazam sans lancer de téléchargement :
+
+```bash
+curl -s http://127.0.0.1:8421/api/playlists/import \
+  -F importer_key=shazam_csv \
+  -F file=@shazam.csv
+```
+
+Le CSV doit contenir des colonnes de titre et d’artiste. Les variantes courantes
+`Title`, `Track Title`, `Artist` et `Artist Name` sont reconnues. Les lignes invalides
+ou dupliquées sont signalées dans la réponse tandis que les pistes valides sont
+enregistrées pour une consultation ultérieure. L’import ne recherche aucun média et ne
+crée aucun travail de téléchargement.
+
 ## Configuration
 
 La configuration provient des variables d’environnement et du fichier `.env`. Copiez
@@ -207,6 +224,8 @@ La configuration provient des variables d’environnement et du fichier `.env`. 
 | `ALLOWED_HOSTS` | `*` |
 | `MAX_CONCURRENT_JOBS` | `2` |
 | `MAX_QUEUE_SIZE` | `32` |
+| `PLAYLIST_IMPORT_MAX_BYTES` | `524288` |
+| `PLAYLIST_IMPORT_MAX_TRACKS` | `500` |
 | `MAX_OUTPUT_SIZE_MB` | `500` |
 | `MAX_MEDIA_DURATION_SECONDS` | `3600` |
 | `MP3_BITRATE_KBPS` | `192` |

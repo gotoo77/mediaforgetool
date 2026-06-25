@@ -76,3 +76,23 @@ class MediaSearchProviderUnknown(MediaForgeToolError):
 class ExtensionKeyAlreadyRegistered(MediaForgeToolError):
     code = "EXTENSION_KEY_ALREADY_REGISTERED"
     public_message = "An extension with this identifier is already registered."
+
+
+class PlaylistImportFileTooLarge(MediaForgeToolError):
+    code = "IMPORT_FILE_TOO_LARGE"
+    public_message = "The playlist file exceeds this instance limit."
+
+
+class PlaylistImportTooManyRows(MediaForgeToolError):
+    code = "IMPORT_TOO_MANY_ROWS"
+    public_message = "The playlist contains too many rows for this instance."
+
+
+class PlaylistImportFormatUnsupported(MediaForgeToolError):
+    code = "IMPORT_FORMAT_UNSUPPORTED"
+    public_message = "Upload a supported playlist file type."
+
+
+class PlaylistImportFileInvalid(MediaForgeToolError):
+    code = "IMPORT_FILE_INVALID"
+    public_message = "The playlist file could not be imported."

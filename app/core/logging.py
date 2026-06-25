@@ -19,7 +19,17 @@ class JsonFormatter(logging.Formatter):
         }
         if request_id is not None:
             payload["request_id"] = request_id
-        for key in ("event", "job_id", "status", "error_code", "platform"):
+        for key in (
+            "event",
+            "job_id",
+            "playlist_id",
+            "track_id",
+            "importer",
+            "provider",
+            "status",
+            "error_code",
+            "platform",
+        ):
             value = getattr(record, key, None)
             if value is not None:
                 payload[key] = value

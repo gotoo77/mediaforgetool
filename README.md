@@ -100,9 +100,10 @@ Phase 1 includes:
 - metadata captured when `yt-dlp` exposes title, platform, thumbnail and duration
 - automatic cleanup for temporary files and expired outputs, while preserving resumable paused or interrupted jobs
 
-It intentionally does not include accounts, OAuth, playlists, a distributed queue or
-user-supplied cookies. Batch work is limited to segment jobs created by the browser for
-one inspected source.
+It intentionally does not include accounts, OAuth, direct platform-playlist downloads,
+a distributed queue or user-supplied cookies. Imported playlist files are handled as
+local metadata and do not trigger downloads automatically. Batch media work remains
+limited to explicit user actions.
 
 ## Architecture
 
@@ -317,6 +318,24 @@ Content-Type: application/json
 {"url":"https://example.invalid/media"}
 ```
 
+Import a Shazam CSV without starting any download:
+
+```http
+POST /api/playlists/import
+Content-Type: multipart/form-data
+```
+
+```bash
+curl -s http://127.0.0.1:8421/api/playlists/import \
+  -F importer_key=shazam_csv \
+  -F file=@shazam.csv
+```
+
+The CSV must provide title and artist columns. Common Shazam variants such as `Title`,
+`Track Title`, `Artist` and `Artist Name` are accepted. Invalid and duplicate rows are
+reported in the response; valid tracks are persisted for later review. Importing a list
+does not search for media or create a download job.
+
 For MP4, job creation can include a `resolution` preset such as `720`. Inspection
 returns the available presets and estimated sizes. MP3 estimates use the configured
 output bitrate and media duration, so every size remains approximate.
@@ -449,6 +468,8 @@ Important limits:
 | `JOB_CREATE_RATE_LIMIT_COUNT` | `10` |
 | `JOB_CREATE_RATE_LIMIT_WINDOW_SECONDS` | `60` |
 | `MAX_REQUEST_BODY_BYTES` | `1048576` |
+| `PLAYLIST_IMPORT_MAX_BYTES` | `524288` |
+| `PLAYLIST_IMPORT_MAX_TRACKS` | `500` |
 | `MAX_OUTPUT_SIZE_MB` | `500` |
 | `MAX_MEDIA_DURATION_SECONDS` | `3600` |
 | `MP3_BITRATE_KBPS` | `192` |

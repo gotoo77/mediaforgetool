@@ -175,8 +175,10 @@ def test_create_schema_adds_playlist_tables_to_existing_database(tmp_path: Path)
     } <= tables
 
 
-def test_story_does_not_register_playlist_routes() -> None:
+def test_only_playlist_import_route_is_registered() -> None:
     paths = {route.path for route in create_app().routes}
 
-    assert not any(path.startswith("/api/playlists") for path in paths)
+    assert {path for path in paths if path.startswith("/api/playlists")} == {
+        "/api/playlists/import"
+    }
     assert not any(path.startswith("/api/tracks") for path in paths)

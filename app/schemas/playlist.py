@@ -71,3 +71,15 @@ class DownloadQueueItemResponse(BaseModel):
     error_message: str | None = None
     created_at: datetime
     submitted_at: datetime | None = None
+
+
+class PlaylistImportIssueResponse(BaseModel):
+    row_number: int | None = None
+    code: str
+    message: str
+
+
+class PlaylistImportResponse(BaseModel):
+    playlist: ImportedPlaylistResponse
+    tracks: list[TrackResponse]
+    issues: list[PlaylistImportIssueResponse]
