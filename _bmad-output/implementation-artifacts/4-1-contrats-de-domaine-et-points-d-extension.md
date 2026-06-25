@@ -1,6 +1,6 @@
 # Story 4.1: Contrats de domaine et points d'extension
 
-Status: ready-for-dev
+Status: review
 
 ## Story
 
@@ -35,17 +35,17 @@ plateforme.
 
 ## Tasks / Subtasks
 
-- [ ] Definir les enums de statut minimaux pour playlist, piste et queue item (AC: 1, 7)
-- [ ] Implementer les entites persistantes et leurs relations (AC: 1, 2)
-- [ ] Ajouter les imports de modeles necessaires a la creation du schema (AC: 2, 8)
-- [ ] Definir les objets de transfert independants de l'ORM pour les importers (AC: 3)
-- [ ] Definir le protocole `PlaylistImporter` (AC: 3)
-- [ ] Definir le protocole `MediaSearchProvider` (AC: 4)
-- [ ] Implementer les registres importer/provider avec erreurs explicites (AC: 5)
-- [ ] Documenter le role non executable de `DownloadQueueItem` (AC: 6)
-- [ ] Ajouter les tests unitaires des invariants et registres (AC: 5, 7)
-- [ ] Ajouter les tests de schema SQLite vide et existant (AC: 2, 8)
-- [ ] Executer les tests cibles puis la suite complete (AC: 9, 10)
+- [x] Definir les enums de statut minimaux pour playlist, piste et queue item (AC: 1, 7)
+- [x] Implementer les entites persistantes et leurs relations (AC: 1, 2)
+- [x] Ajouter les imports de modeles necessaires a la creation du schema (AC: 2, 8)
+- [x] Definir les objets de transfert independants de l'ORM pour les importers (AC: 3)
+- [x] Definir le protocole `PlaylistImporter` (AC: 3)
+- [x] Definir le protocole `MediaSearchProvider` (AC: 4)
+- [x] Implementer les registres importer/provider avec erreurs explicites (AC: 5)
+- [x] Documenter le role non executable de `DownloadQueueItem` (AC: 6)
+- [x] Ajouter les tests unitaires des invariants et registres (AC: 5, 7)
+- [x] Ajouter les tests de schema SQLite vide et existant (AC: 2, 8)
+- [x] Executer les tests cibles puis la suite complete (AC: 9, 10)
 
 ## Dev Notes
 
@@ -192,6 +192,54 @@ applicables aux contenus selectionnes.
 - Aucun comportement visible de MediaForgeTool n'a change.
 - Les controles qualite complets passent.
 
+## Dev Agent Record
+
+### Agent Model Used
+
+GPT-5 Codex
+
+### Debug Log References
+
+- `rtk uv run pytest tests/test_playlist_domain.py tests/test_provider_registries.py -q`
+  -> 13 passed
+- `rtk uv run pytest -q` -> 82 passed, 1 warning pytest-asyncio sous Python 3.14
+- `rtk uv run ruff check .` -> all checks passed
+- `rtk uv run --isolated --python 3.12 pytest tests/test_playlist_domain.py
+  tests/test_playlist_schema.py tests/test_provider_registries.py -q` -> 16 passed
+
+### Completion Notes List
+
+- Ajout de quatre entites ORM generiques et de leurs relations persistantes.
+- Ajout de cycles de vie distincts et de transitions explicites.
+- Ajout d'objets de transfert immuables et de protocoles independants du web, de l'ORM
+  et de `yt-dlp`.
+- Ajout de registres extensibles avec erreurs applicatives stables.
+- `DownloadQueueItem` trace une future soumission sans executer de travail ni remplacer
+  `JobRunner`.
+- Le schema reste additif et se cree depuis une base actuelle contenant seulement
+  `download_jobs`.
+- Aucun endpoint playlist ou track n'est enregistre.
+
+### File List
+
+- `app/core/exceptions.py`
+- `app/db/init_db.py`
+- `app/models/__init__.py`
+- `app/models/playlist.py`
+- `app/schemas/playlist.py`
+- `app/services/media_search/__init__.py`
+- `app/services/media_search/base.py`
+- `app/services/media_search/registry.py`
+- `app/services/playlist_import/__init__.py`
+- `app/services/playlist_import/base.py`
+- `app/services/playlist_import/registry.py`
+- `tests/test_playlist_domain.py`
+- `tests/test_playlist_schema.py`
+- `tests/test_provider_registries.py`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `_bmad-output/implementation-artifacts/4-1-contrats-de-domaine-et-points-d-extension.md`
+
 ## Change Log
 
 - 2026-06-25: Story preparee et placee en ready-for-dev.
+- 2026-06-25: Fondations de domaine implementees et story placee en review.

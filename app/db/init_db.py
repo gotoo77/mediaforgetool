@@ -2,7 +2,13 @@ from sqlalchemy import inspect, text
 from sqlalchemy.engine import Engine
 
 from app.db.base import Base
-from app.models import DownloadJob  # noqa: F401
+from app.models import (  # noqa: F401
+    DownloadJob,
+    DownloadQueueItem,
+    ImportedPlaylist,
+    ResolvedMediaCandidate,
+    Track,
+)
 
 
 def create_schema(engine: Engine) -> None:
