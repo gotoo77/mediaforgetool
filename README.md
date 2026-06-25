@@ -165,6 +165,32 @@ The image declares the same `/healthz` healthcheck for `docker run` deployments.
 Runtime directories are created empty during the image build; local databases, outputs,
 temporary files and cookies are intentionally excluded from the Docker build context.
 
+### Published container image
+
+GitHub Actions tests the application and publishes multi-architecture images for
+`linux/amd64` and `linux/arm64` to GitHub Container Registry. Pull the current `main`
+image with:
+
+```bash
+docker pull ghcr.io/gotoo77/mediaforgetool:latest
+```
+
+Run it with persistent Docker volumes:
+
+```bash
+docker run -d \
+  --name mediaforgetool \
+  --restart unless-stopped \
+  -e APP_HOST=0.0.0.0 \
+  -p 8421:8421 \
+  -v mediaforgetool-storage:/srv/mediaforgetool/storage \
+  -v mediaforgetool-temp:/srv/mediaforgetool/temp \
+  ghcr.io/gotoo77/mediaforgetool:latest
+```
+
+Pushes to `main` publish `latest` and a commit-SHA tag. Git tags such as `v1.0.0`
+also publish versioned image tags such as `1.0.0` and `1.0`.
+
 ## Backup and restore
 
 MediaForgeTool persists SQLite state in `storage/mediaforgetool.db` and completed outputs under
