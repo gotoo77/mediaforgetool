@@ -105,3 +105,59 @@ afin de pouvoir reprendre volontairement un traitement suspendu sans le perdre p
 En tant qu'utilisateur,
 je veux que le nettoyage automatique conserve les dossiers temporaires des jobs pauses ou interrompus,
 afin qu'une reprise volontaire ne perde pas les donnees partielles encore utiles.
+
+## Epic 4: Playlist Import & Media Resolution
+
+Objectif: permettre l'import de listes musicales personnelles, la normalisation de leurs
+metadonnees, la recherche de candidats media et la soumission explicite du resultat
+selectionne au pipeline de telechargement existant.
+
+### Story 4.1: Contrats de domaine et points d'extension
+
+En tant que mainteneur,
+je veux disposer de modeles generiques et de contrats extensibles pour les importers et
+search providers,
+afin d'ajouter Shazam, YouTube et de futurs adaptateurs sans coupler le domaine a une
+plateforme.
+
+### Story 4.2: Import et normalisation d'un CSV Shazam
+
+En tant qu'utilisateur,
+je veux importer un export CSV Shazam et obtenir des pistes normalisees,
+afin de verifier ma liste avant toute recherche ou tout telechargement.
+
+### Story 4.3: Consultation d'une playlist et revue des pistes
+
+En tant qu'utilisateur,
+je veux consulter les pistes detectees et les erreurs d'import,
+afin de corriger ou ignorer les donnees incorrectes avant la resolution.
+
+### Story 4.4: Provider de recherche YouTube
+
+En tant qu'utilisateur,
+je veux rechercher des candidats YouTube pour une piste importee,
+afin de comparer plusieurs medias sans lancer de telechargement implicite.
+
+### Story 4.5: Selection d'un candidat et ajout a la queue existante
+
+En tant qu'utilisateur,
+je veux selectionner un candidat et ses options MP3 ou MP4,
+afin de creer un job dans la queue MediaForgeTool existante.
+
+### Story 4.6: Resolution et ajout en lot controles
+
+En tant qu'utilisateur,
+je veux rechercher et soumettre une selection de pistes avec une concurrence bornee,
+afin de traiter une liste sans saturer l'instance ni perdre le suivi individuel.
+
+### Story 4.7: Observabilite, erreurs et limites d'exploitation
+
+En tant que mainteneur,
+je veux des logs correles, des erreurs stables et des limites configurables,
+afin d'exploiter les imports et resolutions de maniere sure et diagnosticable.
+
+### Story 4.8: Importer texte libre et guide d'extension
+
+En tant que mainteneur,
+je veux valider un deuxieme importer et documenter les points d'extension,
+afin de prouver que Shazam CSV et YouTube ne sont pas codes en dur.
