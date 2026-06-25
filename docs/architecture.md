@@ -19,3 +19,9 @@
 
 The job runner boundary is intentional. A future queue adapter can replace the internal
 queue without moving `yt-dlp` concerns into HTTP routes.
+
+## Proposed extensions
+
+- [Playlist Import & Media Resolution](architecture/playlist_import_architecture.md):
+  architecture cible pour importer des listes musicales, normaliser des pistes,
+  rechercher des candidats media et reutiliser la queue de telechargement existante.
