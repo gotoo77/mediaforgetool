@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MediaForgeTool</title>
+    <link rel="icon" href="{{ url_for('static', path='/favicon.svg') }}" type="image/svg+xml">
+    <link rel="stylesheet" href="{{ url_for('static', path='/app.css') }}?v={{ css_version }}">
+    <script src="{{ url_for('static', path='/app.js') }}?v={{ js_version }}" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Aller au contenu principal</a>
+    <header class="topbar">
+      <nav class="topnav" aria-label="Navigation principale">
+        <a class="brand-link" href="#main-content" aria-label="MediaForgeTool - contenu principal">
+          MediaForgeTool
+        </a>
+        <button
+          type="button"
+          id="nav-toggle"
+          class="nav-toggle"
+          aria-controls="nav-menu"
+          aria-expanded="false"
+        >
+          Menu
+        </button>
+        <div id="nav-menu" class="nav-menu" hidden>
+          <section class="nav-group" aria-labelledby="nav-settings-title">
+            <h2 id="nav-settings-title">Reglages</h2>
+            <button
+              type="button"
+              id="theme-toggle"
+              class="quiet-button"
+              aria-pressed="false"
+            >
+              Mode sombre
+            </button>
+            <label class="switch-row">
+              <input id="cleanup-report-toggle" type="checkbox" checked>
+              <span>Afficher le compte rendu apres nettoyage</span>
+            </label>
+          </section>
+        </div>
+      </nav>
+    </header>
+    <main id="main-content" tabindex="-1">
+      <header class="app-header">
+        <h1>MediaForgeTool</h1>
+      </header>
+
+      <section class="workspace" aria-label="Telechargement media">
+        <form id="download-form">
+          <label class="url-field">
+            <span>URL</span>
+            <input
+              id="media-url"
+              name="url"
+              type="url"
+              maxlength="2048"
+              placeholder="https://..."
+              autocomplete="url"
+              aria-describedby="url-help"
+              required
+            >
+            <small id="url-help">URL publique HTTP ou HTTPS du media a analyser.</small>
+          </label>
+
+          <div class="control-row">
+            <fieldset class="format-switch">
+              <legend>Format</legend>
+              <label>
+                <input type="radio" name="format" value="mp4" checked>
+                <span class="format-option">
+                  <svg class="format-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M3 7a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v1.5l3.2-1.8A1.2 1.2 0 0 1 22 7.75v8.5a1.2 1.2 0 0 1-1.8 1.05L17 15.5V17a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3Z"></path>
+                  </svg>
+                  <span>
+                    <strong>MP4</strong>
+                    <small>Video</small>
+                  </span>
+                </span>
+              </label>
+              <label>
+                <input type="radio" name="format" value="mp3">
+                <span class="format-option">
+                  <svg class="format-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M10 18a3 3 0 1 1-2-2.83V6l11-2.5v10.7a3 3 0 1 1-2-2.83V7.25l-7 1.6Z"></path>
+                  </svg>
+                  <span>
+                    <strong>MP3</strong>
+                    <small>Audio</small>
+                  </span>
+                </span>
+              </label>
+            </fieldset>
+
+            <label id="resolution-field" class="select-field">
+              <span>Resolution</span>
+              <select id="resolution-select" name="resolution">
+                <option value="">Auto</option>
+              </select>
+            </label>
+
+            <label id="audio-quality-field" class="select-field" hidden>
+              <span>Qualite MP3</span>
+              <select id="audio-quality-select" name="audio_bitrate_kbps">
+                <option value="128">128 kb/s</option>
+                <option value="192" selected>192 kb/s</option>
+                <option value="256">256 kb/s</option>
+                <option value="320">320 kb/s</option>
+              </select>
+            </label>
+
+            <div class="form-actions">
+              <button type="button" id="inspect-button" class="quiet-button">Analyser</button>
+              <button type="submit" id="submit-button">Telecharger</button>
+            </div>
+          </div>
+        </form>
+        <section id="media-inspection" class="media-inspection" hidden aria-live="polite">
+          <img id="media-thumbnail" alt="" hidden>
+          <div>
+            <strong id="media-title"></strong>
+            <p id="media-metadata"></p>
+            <output id="media-estimate" class="media-estimate"></output>
+          </div>
+        </section>
+        <section id="segment-picker" class="segment-picker" hidden>
+          <strong>Decoupe par jalons</strong>
+          <div class="segment-builder">
+            <fieldset class="timecode-editor" aria-describedby="segment-marker-help">
+              <legend>Jalon</legend>
+              <label>
+                <span>Heures</span>
+                <input id="marker-hours" type="number" inputmode="numeric" min="0" step="1" value="0">
+              </label>
+              <label>
+                <span>Minutes</span>
+                <input id="marker-minutes" type="number" inputmode="numeric" min="0" max="59" step="1" value="0">
+              </label>
+              <label>
+                <span>Secondes</span>
+                <input id="marker-seconds" type="number" inputmode="numeric" min="0" max="59" step="1" value="0">
+              </label>
+            </fieldset>
+            <button type="button" id="add-segment-marker" class="quiet-button">Ajouter</button>
+            <button type="button" id="clear-segment-markers" class="quiet-button">Reinitialiser</button>
+          </div>
+          <small id="segment-marker-help">
+            Ajoute les timecodes de coupe. Les segments sont crees automatiquement entre deux jalons.
+          </small>
+          <div class="segment-plan-actions" aria-label="Plan de decoupe">
+            <button type="button" id="save-segment-plan" class="quiet-button">Sauvegarder</button>
+            <button type="button" id="load-segment-plan" class="quiet-button">Charger</button>
+            <button type="button" id="export-segment-plan" class="quiet-button">Exporter</button>
+            <label class="import-plan-button quiet-button">
+              <span>Importer</span>
+              <input id="import-segment-plan" type="file" accept="application/json,.json">
+            </label>
+          </div>
+          <div id="segment-timeline" class="segment-timeline" aria-label="Timeline des jalons"></div>
+          <div id="segment-markers" class="segment-markers" aria-label="Jalons de coupe"></div>
+          <div id="segment-options"></div>
+          <div class="segment-actions" aria-label="Selection des extraits">
+            <button type="button" id="select-first-segment" class="quiet-button">Premier</button>
+            <button type="button" id="select-all-segments" class="quiet-button">Tous</button>
+            <button type="button" id="clear-segments" class="quiet-button">Aucun</button>
+          </div>
+          <small id="segment-status"></small>
+        </section>
+        <output id="inspection-message" class="media-estimate"></output>
+
+        <section id="current-job" class="job-surface" hidden aria-live="polite">
+          <div class="job-line">
+            <strong id="job-title">Media</strong>
+            <span id="job-status"></span>
+          </div>
+          <progress id="job-progress" max="100" value="0" aria-label="Progression du job"></progress>
+          <p id="job-details" class="job-details"></p>
+          <p id="job-error" class="error" hidden></p>
+          <button type="button" id="job-pause" class="quiet-button" hidden>Pause</button>
+          <button type="button" id="job-resume" class="quiet-button" hidden>Reprendre</button>
+          <a id="job-download" hidden>Recuperer le fichier</a>
+        </section>
+        <section id="batch-jobs" class="batch-surface" hidden aria-live="polite">
+          <div class="job-line">
+            <strong>Lot de segments</strong>
+            <span id="batch-status"></span>
+          </div>
+          <progress id="batch-progress" max="100" value="0" aria-label="Progression globale du lot"></progress>
+          <ol id="batch-list" class="batch-list"></ol>
+        </section>
+      </section>
+
+      <section class="history" aria-labelledby="history-title">
+        <div class="section-heading">
+          <h2 id="history-title">Historique</h2>
+          <button type="button" id="clear-history-button" class="quiet-button">
+            Vider l historique
+          </button>
+        </div>
+        <ol id="history-list"></ol>
+      </section>
+    </main>
+    <dialog id="cleanup-report-dialog" class="report-dialog" aria-labelledby="cleanup-report-title">
+      <h2 id="cleanup-report-title">Compte rendu</h2>
+      <p id="cleanup-report-message"></p>
+      <form method="dialog">
+        <button type="submit">OK</button>
+      </form>
+    </dialog>
+  </body>
+</html>

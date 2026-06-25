@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.env
+.devmenu.local.json
+.devmenu_history.json
+decoupe_*.json
+.pytest_cache/
+.ruff_cache/
+.venv/
+storage/*
+!storage/.gitkeep
+temp/*
+!temp/.gitkeep
+secrets/*
+!secrets/.gitkeep
+*.db
+*.sqlite3

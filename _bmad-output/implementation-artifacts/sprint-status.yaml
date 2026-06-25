@@ -1,0 +1,50 @@
+# generated: 2026-05-31 00:00:00 +0200
+# last_updated: 2026-06-25 00:00:00 +0200
+# project: MediaForgeTool
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+#
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review
+#   - done: Story completed
+
+generated: 2026-05-31 00:00:00 +0200
+last_updated: 2026-06-25 00:00:00 +0200
+project: MediaForgeTool
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  epic-1: done
+  1-1-socle-fastapi-jobs-et-telechargement-media-mvp: done
+  1-2-durcissement-exploitation-et-parcours-public: done
+  epic-1-retrospective: done
+  epic-2: done
+  2-1-healthcheck-docker-compose-leger: done
+  2-2-image-docker-autonome-et-runbook-minimal: done
+  2-3-image-docker-sans-donnees-runtime: done
+  2-4-sauvegarde-et-restauration-du-stockage-local: done
+  2-5-logs-json-documentes-et-testes: done
+  2-6-headers-http-de-durcissement-navigateur: done
+  2-7-limite-de-taille-des-corps-http: done
+  2-8-correlation-request-id: done
+  2-9-liste-dhotes-autorises: done
+  epic-3: done
+  3-1-contrats-publics-de-gestion-des-jobs-et-extraits: done
+  3-2-pause-fiable-avant-demarrage-worker: done
+  3-3-pause-coherente-pendant-la-phase-de-traitement: done
+  3-4-protection-des-jobs-pauses-contre-la-purge: done
+  3-5-conservation-des-temporaires-reprenables: done
+  epic-3-retrospective: done

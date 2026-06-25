@@ -1,0 +1,26 @@
+services:
+  mediaforgetool:
+    build: .
+    env_file:
+      - .env
+    environment:
+      APP_HOST: 0.0.0.0
+    ports:
+      - "${APP_PORT:-8421}:${APP_PORT:-8421}"
+    volumes:
+      - ./storage:/srv/mediaforgetool/storage
+      - ./temp:/srv/mediaforgetool/temp
+      - ./secrets:/srv/mediaforgetool/secrets:ro
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import os, urllib.request; urllib.request.urlopen(f\"http://127.0.0.1:{os.environ.get('APP_PORT', '8421')}/healthz\", timeout=3).read()",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

@@ -1,0 +1,202 @@
+{
+  "project": {
+    "name": "MediaForgeTool",
+    "type": "python",
+    "lang": "fr",
+    "icon": "⚒️",
+    "timeout": 1800
+  },
+  "menus": {
+    "main": {
+      "title": "MediaForgeTool",
+      "items": [
+        {
+          "label": "Sync dev",
+          "icon": "📦",
+          "key": "i",
+          "argv": ["uv", "sync", "--dev"],
+          "desc": "Installe l environnement Python et les dependances de developpement"
+        },
+        {
+          "label": "Serveur",
+          "icon": "🚀",
+          "key": "r",
+          "submenu": "server"
+        },
+        {
+          "label": "Tests",
+          "icon": "🧪",
+          "key": "t",
+          "argv": ["uv", "run", "pytest"]
+        },
+        {
+          "label": "Lint",
+          "icon": "🔍",
+          "key": "l",
+          "argv": ["uv", "run", "ruff", "check", "."]
+        },
+        {
+          "label": "Check complet",
+          "icon": "✅",
+          "key": "c",
+          "commands": [
+            ["uv", "run", "ruff", "check", "."],
+            ["uv", "run", "pytest"],
+            ["uv", "run", "python", "-m", "compileall", "app"]
+          ],
+          "desc": "Lint, tests et compilation Python"
+        },
+        {
+          "label": "API jobs",
+          "icon": "🌐",
+          "key": "a",
+          "argv": [
+            "bash",
+            "-lc",
+            "set -a; test -f .env && . ./.env; curl \"http://${APP_HOST:-127.0.0.1}:${APP_PORT:-8421}/api/jobs\""
+          ],
+          "desc": "Affiche l historique local si le serveur est lance"
+        },
+        {
+          "label": "Docker",
+          "icon": "🐳",
+          "key": "d",
+          "submenu": "docker"
+        },
+        {
+          "label": "Docs",
+          "icon": "📚",
+          "key": "o",
+          "submenu": "docs"
+        },
+        {
+          "label": "Git branches",
+          "icon": "🌿",
+          "key": "g",
+          "submenu": "auto:git"
+        },
+        {
+          "label": "Historique",
+          "icon": "🕘",
+          "key": "h",
+          "action": "history"
+        },
+        {
+          "label": "Quitter",
+          "icon": "🚪",
+          "key": "x",
+          "action": "exit"
+        }
+      ]
+    },
+    "server": {
+      "title": "MediaForgeTool - Serveur",
+      "items": [
+        {
+          "label": "Start",
+          "icon": "▶️",
+          "key": "s",
+          "argv": ["uv", "run", "python", "scripts/dev_server.py", "start"],
+          "desc": "Demarre MediaForgeTool en arriere-plan avec APP_HOST et APP_PORT"
+        },
+        {
+          "label": "Stop",
+          "icon": "⏹️",
+          "key": "x",
+          "argv": ["uv", "run", "python", "scripts/dev_server.py", "stop"],
+          "desc": "Arrete le serveur de developpement"
+        },
+        {
+          "label": "Restart",
+          "icon": "🔁",
+          "key": "r",
+          "argv": ["uv", "run", "python", "scripts/dev_server.py", "restart"],
+          "desc": "Redemarre le serveur de developpement"
+        },
+        {
+          "label": "Status",
+          "icon": "📡",
+          "key": "t",
+          "argv": ["uv", "run", "python", "scripts/dev_server.py", "status"],
+          "desc": "Affiche le PID, l URL et l etat healthcheck"
+        },
+        {
+          "label": "Logs",
+          "icon": "📜",
+          "key": "l",
+          "argv": ["uv", "run", "python", "scripts/dev_server.py", "logs"],
+          "desc": "Affiche les dernieres lignes du log serveur"
+        },
+        {
+          "label": "Retour",
+          "icon": "↩️",
+          "key": "z",
+          "submenu": "main"
+        }
+      ]
+    },
+    "docker": {
+      "title": "MediaForgeTool - Docker",
+      "items": [
+        {
+          "label": "Build image",
+          "icon": "🔨",
+          "key": "b",
+          "argv": ["docker", "build", "-t", "mediaforgetool:mvp", "."]
+        },
+        {
+          "label": "Compose up",
+          "icon": "🚀",
+          "key": "u",
+          "argv": [
+            "bash",
+            "-lc",
+            "test -f .env || cp .env.example .env; docker compose up --build"
+          ],
+          "desc": "Cree .env depuis .env.example si necessaire puis lance compose"
+        },
+        {
+          "label": "Compose down",
+          "icon": "⏹️",
+          "key": "s",
+          "argv": ["docker", "compose", "down"]
+        },
+        {
+          "label": "Compose logs",
+          "icon": "📜",
+          "key": "l",
+          "argv": ["docker", "compose", "logs", "-f", "mediaforgetool"]
+        },
+        {
+          "label": "Retour",
+          "icon": "↩️",
+          "key": "z",
+          "submenu": "main"
+        }
+      ]
+    },
+    "docs": {
+      "title": "MediaForgeTool - Docs",
+      "items": [
+        {
+          "label": "README",
+          "icon": "📄",
+          "key": "r",
+          "argv": ["sed", "-n", "1,260p", "README.md"]
+        },
+        {
+          "label": "Architecture",
+          "icon": "🏗️",
+          "key": "a",
+          "argv": ["sed", "-n", "1,240p", "docs/architecture.md"]
+        },
+        {
+          "label": "Retour",
+          "icon": "↩️",
+          "key": "z",
+          "submenu": "main"
+        }
+      ]
+    }
+  }
+}
