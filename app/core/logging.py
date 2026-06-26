@@ -24,11 +24,14 @@ class JsonFormatter(logging.Formatter):
             "job_id",
             "playlist_id",
             "track_id",
+            "candidate_id",
+            "queue_item_id",
             "importer",
             "provider",
             "status",
             "error_code",
             "platform",
+            "row_number",
         ):
             value = getattr(record, key, None)
             if value is not None:

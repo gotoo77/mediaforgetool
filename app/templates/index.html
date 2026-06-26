@@ -17,6 +17,22 @@
         </a>
         <button
           type="button"
+          id="playlist-open-button"
+          class="quiet-button toolbar-action"
+          aria-haspopup="dialog"
+        >
+          Importer une liste
+        </button>
+        <button
+          type="button"
+          id="history-open-button"
+          class="quiet-button toolbar-action"
+          aria-haspopup="dialog"
+        >
+          Historique
+        </button>
+        <button
+          type="button"
           id="nav-toggle"
           class="nav-toggle"
           aria-controls="nav-menu"
@@ -113,6 +129,16 @@
 
             <div class="form-actions">
               <button type="button" id="inspect-button" class="quiet-button">Analyser</button>
+              <button
+                type="button"
+                id="segment-toggle"
+                class="quiet-button"
+                aria-controls="segment-picker"
+                aria-expanded="false"
+                disabled
+              >
+                Segments
+              </button>
               <button type="submit" id="submit-button">Telecharger</button>
             </div>
           </div>
@@ -192,15 +218,6 @@
         </section>
       </section>
 
-      <section class="history" aria-labelledby="history-title">
-        <div class="section-heading">
-          <h2 id="history-title">Historique</h2>
-          <button type="button" id="clear-history-button" class="quiet-button">
-            Vider l historique
-          </button>
-        </div>
-        <ol id="history-list"></ol>
-      </section>
     </main>
     <dialog id="cleanup-report-dialog" class="report-dialog" aria-labelledby="cleanup-report-title">
       <h2 id="cleanup-report-title">Compte rendu</h2>
@@ -208,6 +225,126 @@
       <form method="dialog">
         <button type="submit">OK</button>
       </form>
+    </dialog>
+    <dialog id="playlist-dialog" class="tool-dialog playlist-import" aria-labelledby="playlist-import-title">
+      <div class="dialog-heading">
+        <h2 id="playlist-import-title">Import de liste</h2>
+        <form method="dialog">
+          <button type="submit" id="playlist-close-button" class="quiet-button">Fermer</button>
+        </form>
+      </div>
+      <form id="playlist-import-form" class="playlist-import-form">
+        <label class="select-field">
+          <span>Source</span>
+          <select id="playlist-importer-key" name="importer_key">
+            <option value="shazam_csv">CSV Shazam</option>
+            <option value="text">Texte libre</option>
+          </select>
+        </label>
+        <label class="file-field">
+          <span id="playlist-import-file-label">Fichier</span>
+          <input id="playlist-import-file" name="file" type="file" accept=".csv,text/csv" required>
+          <small id="playlist-import-help">L'import cree une playlist de revue sans lancer de telechargement.</small>
+        </label>
+        <button type="submit" id="playlist-import-button">Importer</button>
+      </form>
+      <output id="playlist-import-message" class="media-estimate"></output>
+
+      <div class="playlist-review-layout">
+        <section aria-labelledby="playlist-list-title">
+          <h3 id="playlist-list-title">Imports recents</h3>
+          <ol id="playlist-list" class="playlist-list"></ol>
+        </section>
+        <section id="playlist-detail" class="playlist-detail" aria-labelledby="playlist-detail-title" hidden>
+          <div class="playlist-detail-heading">
+            <div>
+              <h3 id="playlist-detail-title">Playlist</h3>
+              <p id="playlist-detail-meta"></p>
+            </div>
+            <div class="playlist-pager" aria-label="Pagination des pistes">
+              <button type="button" id="playlist-prev" class="quiet-button">Precedent</button>
+              <span id="playlist-page-status"></span>
+              <button type="button" id="playlist-next" class="quiet-button">Suivant</button>
+            </div>
+          </div>
+          <form id="playlist-filter-form" class="playlist-filter-form" role="search">
+            <label class="select-field">
+              <span>Recherche</span>
+              <input
+                id="playlist-search"
+                type="search"
+                maxlength="120"
+                placeholder="Artiste, titre, album, ISRC"
+                autocomplete="off"
+              >
+            </label>
+            <label class="select-field">
+              <span>Statut</span>
+              <select id="playlist-status-filter">
+                <option value="">Tous</option>
+                <option value="pending">A rechercher</option>
+                <option value="searching">Recherche en cours</option>
+                <option value="resolved">Resolue</option>
+                <option value="no_match">Sans resultat</option>
+                <option value="failed">Erreur</option>
+              </select>
+            </label>
+            <label class="select-field">
+              <span>Tri</span>
+              <select id="playlist-sort">
+                <option value="position">Ordre import</option>
+                <option value="artist">Artiste</option>
+                <option value="title">Titre</option>
+                <option value="album">Album</option>
+                <option value="resolution_status">Statut</option>
+              </select>
+            </label>
+            <label class="select-field">
+              <span>Sens</span>
+              <select id="playlist-sort-direction">
+                <option value="asc">Ascendant</option>
+                <option value="desc">Descendant</option>
+              </select>
+            </label>
+            <button type="submit" id="playlist-apply-filter" class="quiet-button">Filtrer</button>
+            <button type="button" id="playlist-clear-filter" class="quiet-button">Effacer</button>
+          </form>
+          <div class="playlist-batch-actions" aria-label="Actions sur les pistes selectionnees">
+            <button type="button" id="playlist-select-page" class="quiet-button">Selectionner la page</button>
+            <button type="button" id="playlist-clear-selection" class="quiet-button">Deselectionner</button>
+            <button type="button" id="playlist-batch-resolve" class="quiet-button">Rechercher selection</button>
+            <label class="batch-option">
+              <span>Format</span>
+              <select id="playlist-batch-format">
+                <option value="mp3">MP3</option>
+                <option value="mp4">MP4</option>
+              </select>
+            </label>
+            <label class="batch-option">
+              <span>Option</span>
+              <select id="playlist-batch-quality"></select>
+            </label>
+            <button type="button" id="playlist-batch-queue" class="quiet-button">Ajouter selection</button>
+            <span id="playlist-selection-status"></span>
+          </div>
+          <ul id="playlist-issues" class="playlist-issues"></ul>
+          <ol id="playlist-tracks" class="playlist-tracks"></ol>
+        </section>
+      </div>
+    </dialog>
+    <dialog id="history-dialog" class="tool-dialog history" aria-labelledby="history-title">
+      <div class="dialog-heading">
+        <h2 id="history-title">Historique</h2>
+        <div class="dialog-actions">
+          <button type="button" id="clear-history-button" class="quiet-button">
+            Vider l historique
+          </button>
+          <form method="dialog">
+            <button type="submit" id="history-close-button" class="quiet-button">Fermer</button>
+          </form>
+        </div>
+      </div>
+      <ol id="history-list"></ol>
     </dialog>
   </body>
 </html>

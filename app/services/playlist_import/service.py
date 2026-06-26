@@ -5,7 +5,7 @@ from typing import BinaryIO
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import MediaForgeToolError
-from app.models.playlist import ImportedPlaylist, PlaylistStatus, Track
+from app.models.playlist import ImportedPlaylist, PlaylistImportIssue, PlaylistStatus, Track
 from app.services.playlist_import.base import ImportIssue
 from app.services.playlist_import.registry import PlaylistImporterRegistry
 from app.services.track_normalizer import NORMALIZATION_VERSION
@@ -75,9 +75,29 @@ class PlaylistImportService:
             )
             for track in result.tracks
         ]
+        playlist.issues = [
+            PlaylistImportIssue(
+                position=index,
+                row_number=issue.row_number,
+                code=issue.code,
+                message=issue.message,
+            )
+            for index, issue in enumerate(result.issues)
+        ]
         self.session.add(playlist)
         self.session.commit()
         self.session.refresh(playlist)
+        for issue in playlist.issues:
+            logger.warning(
+                "Playlist import row rejected",
+                extra={
+                    "event": "playlist_import_row_rejected",
+                    "playlist_id": playlist.id,
+                    "importer": importer_key,
+                    "row_number": issue.row_number,
+                    "error_code": issue.code,
+                },
+            )
         logger.info(
             "Playlist import completed",
             extra={

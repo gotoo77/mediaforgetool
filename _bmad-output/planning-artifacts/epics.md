@@ -161,3 +161,27 @@ afin d'exploiter les imports et resolutions de maniere sure et diagnosticable.
 En tant que mainteneur,
 je veux valider un deuxieme importer et documenter les points d'extension,
 afin de prouver que Shazam CSV et YouTube ne sont pas codes en dur.
+
+## Epic 5: UX de revue avancee des playlists
+
+Objectif: rendre la revue des playlists importees plus efficace pour les listes longues,
+en ajoutant recherche, filtres, tri et edition controlee des metadonnees avant
+resolution ou ajout a la queue.
+
+### Story 5.1: Recherche et filtre des pistes importees
+
+En tant qu'utilisateur,
+je veux rechercher et filtrer les pistes d'une playlist importee,
+afin de retrouver rapidement les elements a verifier, resoudre ou soumettre.
+
+### Story 5.2: Tri des pistes importees
+
+En tant qu'utilisateur,
+je veux trier les pistes d'une playlist importee,
+afin de comparer plus facilement les artistes, titres, albums et statuts de resolution.
+
+### Story 5.3: Edition locale des metadonnees de piste
+
+En tant qu'utilisateur,
+je veux corriger localement artiste, titre, album et ISRC d'une piste importee,
+afin d'ameliorer la recherche de candidats sans modifier le fichier source.

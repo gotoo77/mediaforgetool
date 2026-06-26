@@ -69,6 +69,37 @@ def test_json_formatter_includes_playlist_import_context() -> None:
     assert payload["importer"] == "shazam_csv"
 
 
+def test_json_formatter_includes_playlist_resolution_context() -> None:
+    record = logging.LogRecord(
+        name="mediaforgetool.playlists",
+        level=logging.INFO,
+        pathname=__file__,
+        lineno=28,
+        msg="Candidate selected",
+        args=(),
+        exc_info=None,
+    )
+    record.event = "media_candidate_selected"
+    record.playlist_id = "playlist-1"
+    record.track_id = "track-1"
+    record.candidate_id = "candidate-1"
+    record.queue_item_id = "queue-item-1"
+    record.job_id = "job-1"
+    record.provider = "youtube"
+    record.row_number = 4
+
+    payload = json.loads(JsonFormatter().format(record))
+
+    assert payload["event"] == "media_candidate_selected"
+    assert payload["playlist_id"] == "playlist-1"
+    assert payload["track_id"] == "track-1"
+    assert payload["candidate_id"] == "candidate-1"
+    assert payload["queue_item_id"] == "queue-item-1"
+    assert payload["job_id"] == "job-1"
+    assert payload["provider"] == "youtube"
+    assert payload["row_number"] == 4
+
+
 def test_json_formatter_includes_context_request_id() -> None:
     token = set_request_id("request-1")
     try:

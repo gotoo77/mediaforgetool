@@ -169,16 +169,24 @@ def test_create_schema_adds_playlist_tables_to_existing_database(tmp_path: Path)
     assert {
         "download_jobs",
         "imported_playlists",
+        "playlist_import_issues",
         "tracks",
         "resolved_media_candidates",
         "download_queue_items",
     } <= tables
 
 
-def test_only_playlist_import_route_is_registered() -> None:
+def test_playlist_routes_are_registered_without_track_routes() -> None:
     paths = {route.path for route in create_app().routes}
 
     assert {path for path in paths if path.startswith("/api/playlists")} == {
-        "/api/playlists/import"
+        "/api/playlists",
+        "/api/playlists/{playlist_id}/tracks/queue-batch",
+        "/api/playlists/{playlist_id}/tracks/resolve-batch",
+        "/api/playlists/{playlist_id}/tracks/{track_id}",
+        "/api/playlists/{playlist_id}/tracks/{track_id}/candidates/{candidate_id}/queue",
+        "/api/playlists/{playlist_id}/tracks/{track_id}/resolve",
+        "/api/playlists/{playlist_id}",
+        "/api/playlists/import",
     }
     assert not any(path.startswith("/api/tracks") for path in paths)

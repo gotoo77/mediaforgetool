@@ -17,7 +17,8 @@ from app.db.session import build_engine, build_session_factory
 from app.services.cleanup_service import CleanupService
 from app.services.job_runner import JobRunner
 from app.services.media_downloader import MediaDownloader
-from app.services.playlist_import import PlaylistImporterRegistry
+from app.services.media_search import MediaSearchProviderRegistry, YouTubeSearchProvider
+from app.services.playlist_import import PlainTextImporter, PlaylistImporterRegistry
 from app.services.playlist_import.shazam_csv import ShazamCsvImporter
 from app.services.rate_limiter import SlidingWindowRateLimiter
 from app.services.storage_service import StorageService
@@ -64,6 +65,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         playlist_importer_registry.register(
             ShazamCsvImporter(max_tracks=app_settings.playlist_import_max_tracks)
         )
+        playlist_importer_registry.register(
+            PlainTextImporter(max_tracks=app_settings.playlist_import_max_tracks)
+        )
+        media_search_provider_registry = MediaSearchProviderRegistry()
+        media_search_provider_registry.register(YouTubeSearchProvider(app_settings))
 
         app.state.settings = app_settings
         app.state.engine = engine
@@ -72,6 +78,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.cleanup_service = cleanup
         app.state.job_rate_limiter = rate_limiter
         app.state.playlist_importer_registry = playlist_importer_registry
+        app.state.media_search_provider_registry = media_search_provider_registry
 
         await runner.start()
         await cleanup.start()

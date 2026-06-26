@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     max_request_body_bytes: int = Field(default=1_048_576, ge=1024, le=10_485_760)
     playlist_import_max_bytes: int = Field(default=524_288, ge=1024, le=5_242_880)
     playlist_import_max_tracks: int = Field(default=500, ge=1, le=10_000)
+    media_search_max_candidates: int = Field(default=5, ge=1, le=20)
+    media_resolution_max_concurrency: int = Field(default=2, ge=1, le=8)
     max_url_length: int = Field(default=2048, ge=64, le=8192)
     max_output_size_mb: int = Field(default=500, ge=1, le=10_000)
     max_media_duration_seconds: int = Field(default=3600, ge=1)

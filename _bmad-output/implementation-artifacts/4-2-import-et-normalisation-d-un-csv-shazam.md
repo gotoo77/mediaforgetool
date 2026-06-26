@@ -1,6 +1,6 @@
 # Story 4.2: Import et normalisation d'un CSV Shazam
 
-Status: review
+Status: done
 
 ## Story
 

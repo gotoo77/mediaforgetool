@@ -180,7 +180,7 @@ restauration.
 | Téléchargement final | `GET /api/jobs/{job_id}/file` |
 | Suppression | `DELETE /api/jobs/{job_id}` |
 | Nettoyage de l’historique | `DELETE /api/jobs` |
-| Import d’un CSV Shazam | `POST /api/playlists/import` |
+| Import d’une liste | `POST /api/playlists/import` |
 
 Exemple de création MP3 :
 
@@ -212,6 +212,58 @@ ou dupliquées sont signalées dans la réponse tandis que les pistes valides so
 enregistrées pour une consultation ultérieure. L’import ne recherche aucun média et ne
 crée aucun travail de téléchargement.
 
+Importer une liste texte libre via le même endpoint :
+
+```bash
+curl -s http://127.0.0.1:8421/api/playlists/import \
+  -F importer_key=text \
+  -F file=@tracks.txt
+```
+
+Chaque ligne non vide et non commentée doit utiliser `Artiste - Titre`. Les lignes qui
+commencent par `#` et les lignes vides sont ignorées. Les lignes invalides et les
+doublons sont signalés explicitement dans la réponse; les pistes valides utilisent le
+même normalizer, le même écran de revue, la même résolution et la même queue que les
+imports CSV.
+
+### Étendre les imports et la recherche
+
+Les importers de listes sont enregistrés dans `PlaylistImporterRegistry`. Un nouvel
+importer doit exposer une clé stable, être enregistré dans `create_app` et produire
+uniquement des métadonnées de pistes. Les futurs supports Spotify, Deezer et Apple Music
+doivent être des adaptateurs d’exports fournis par l’utilisateur, pas des contournements
+d’API, de comptes ou d’authentification. Un importer YouTube Playlist peut transformer
+une playlist en métadonnées locales, mais il reste distinct du provider de recherche
+YouTube.
+
+Les providers de recherche sont enregistrés dans `MediaSearchProviderRegistry`. Ils
+résolvent une `Track` persistée en candidats sans créer de travaux. Un téléchargement
+n’est créé qu’après sélection explicite d’un candidat et ajout à la queue existante.
+
+L’utilisateur reste responsable de vérifier qu’il dispose des droits ou autorisations
+nécessaires pour tout média inspecté, téléchargé ou converti avec l’instance.
+
+## Journaux
+
+MediaForgeTool écrit des journaux JSON sur stdout. Chaque entrée contient `timestamp`,
+`level`, `logger` et `message`; les événements de requête, de travail et de playlist
+peuvent aussi inclure `request_id`, `event`, `job_id`, `playlist_id`, `track_id`,
+`candidate_id`, `queue_item_id`, `importer`, `provider`, `status`, `error_code`,
+`platform` et `row_number`.
+
+Événements opérationnels courants :
+
+| Événement | Sens |
+| --- | --- |
+| `app_started` | Démarrage FastAPI terminé. |
+| `job_submitted` | Travail accepté par la queue existante. |
+| `job_completed` / `job_failed` | Travail terminé ou échoué avec un code public. |
+| `playlist_import_completed` / `playlist_import_partial` | Import terminé. |
+| `playlist_import_row_rejected` | Ligne rejetée; seuls ligne et code public sont journalisés. |
+| `media_search_started` / `media_search_completed` | Résolution lancée ou terminée. |
+| `media_search_no_results` / `media_search_failed` | Aucun candidat ou erreur provider. |
+| `media_candidate_selected` | Candidat explicitement ajouté à la queue. |
+
 ## Configuration
 
 La configuration provient des variables d’environnement et du fichier `.env`. Copiez
@@ -226,12 +278,15 @@ La configuration provient des variables d’environnement et du fichier `.env`. 
 | `MAX_QUEUE_SIZE` | `32` |
 | `PLAYLIST_IMPORT_MAX_BYTES` | `524288` |
 | `PLAYLIST_IMPORT_MAX_TRACKS` | `500` |
+| `MEDIA_SEARCH_MAX_CANDIDATES` | `5` |
+| `MEDIA_RESOLUTION_MAX_CONCURRENCY` | `2` |
 | `MAX_OUTPUT_SIZE_MB` | `500` |
 | `MAX_MEDIA_DURATION_SECONDS` | `3600` |
 | `MP3_BITRATE_KBPS` | `192` |
 | `JOB_TIMEOUT_SECONDS` | `1800` |
 | `OUTPUT_RETENTION_HOURS` | `24` |
 | `TEMP_RETENTION_HOURS` | `2` |
+| `YTDLP_SOCKET_TIMEOUT_SECONDS` | `20` |
 | `YTDLP_JS_RUNTIME` | `node` |
 
 Ne lancez pas plusieurs workers Uvicorn : chaque processus créerait sa propre file en
