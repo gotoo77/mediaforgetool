@@ -4,6 +4,7 @@ __pycache__/
 .devmenu.local.json
 .devmenu_history.json
 decoupe_*.json
+mediaforgetool-segment-plan*.json
 .pytest_cache/
 .ruff_cache/
 .venv/
