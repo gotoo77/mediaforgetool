@@ -1,5 +1,5 @@
 # generated: 2026-05-31 00:00:00 +0200
-# last_updated: 2026-06-25 00:00:00 +0200
+# last_updated: 2026-07-01 00:00:00 +0200
 # project: MediaForgeTool
 # project_key: NOKEY
 # tracking_system: file-system
@@ -20,7 +20,7 @@
 #   - done: Story completed
 
 generated: 2026-05-31 00:00:00 +0200
-last_updated: 2026-06-25 00:00:00 +0200
+last_updated: 2026-07-01 00:00:00 +0200
 project: MediaForgeTool
 project_key: NOKEY
 tracking_system: file-system
@@ -57,3 +57,10 @@ development_status:
   4-6-resolution-et-ajout-en-lot-controles: backlog
   4-7-observabilite-erreurs-et-limites-d-exploitation: backlog
   4-8-importer-texte-libre-et-guide-d-extension: backlog
+  epic-5: in-progress
+  5-1-socle-domaine-atelier-et-assets-media: review
+  5-2-inspection-locale-audio-video: review
+  5-3-jobs-ffmpeg-v1-de-transformation-simple: review
+  5-4-vue-atelier-minimale: review
+  5-5-concat-audio-et-video: review
+  5-6-durcissement-ux-stockage-et-exploitation-de-latelier: review

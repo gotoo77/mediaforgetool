@@ -16,8 +16,49 @@ from app.core.config import get_settings  # noqa: E402
 RUNTIME_DIR = Path("temp")
 PID_FILE = RUNTIME_DIR / "dev-server.pid"
 LOG_FILE = RUNTIME_DIR / "dev-server.log"
+PREVIOUS_LOG_FILE = RUNTIME_DIR / "dev-server.previous.log"
 START_TIMEOUT_SECONDS = 15
 STOP_TIMEOUT_SECONDS = 10
+
+
+def refresh_windows_path() -> None:
+    if os.name != "nt":
+        return
+    try:
+        import winreg
+    except ImportError:
+        return
+
+    parts = [os.environ.get("PATH", "")]
+    registry_paths = [
+        (
+            winreg.HKEY_LOCAL_MACHINE,
+            r"SYSTEM\CurrentControlSet\Control\Session Manager\Environment",
+        ),
+        (winreg.HKEY_CURRENT_USER, "Environment"),
+    ]
+    for hive, subkey in registry_paths:
+        try:
+            with winreg.OpenKey(hive, subkey) as key:
+                value, _ = winreg.QueryValueEx(key, "Path")
+        except OSError:
+            continue
+        if value:
+            parts.append(os.path.expandvars(str(value)))
+
+    seen: set[str] = set()
+    merged: list[str] = []
+    for chunk in parts:
+        for entry in chunk.split(os.pathsep):
+            normalized = entry.strip().rstrip("\\/")
+            if not normalized:
+                continue
+            lowered = normalized.lower()
+            if lowered in seen:
+                continue
+            seen.add(lowered)
+            merged.append(normalized)
+    os.environ["PATH"] = os.pathsep.join(merged)
 
 
 def read_pid() -> int | None:
@@ -36,7 +77,21 @@ def remove_pid() -> None:
     PID_FILE.unlink(missing_ok=True)
 
 
+def reset_log() -> None:
+    if LOG_FILE.exists():
+        PREVIOUS_LOG_FILE.unlink(missing_ok=True)
+        LOG_FILE.replace(PREVIOUS_LOG_FILE)
+
+
 def process_is_running(pid: int) -> bool:
+    if os.name == "nt":
+        result = subprocess.run(
+            ["tasklist", "/FI", f"PID eq {pid}", "/NH"],
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+        return str(pid) in result.stdout
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
@@ -93,12 +148,14 @@ def start() -> int:
         return 0
     remove_pid()
     RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
+    reset_log()
     log_handle = LOG_FILE.open("ab")
     process = subprocess.Popen(
         [sys.executable, "-m", "app.run", "--reload"],
         stdout=log_handle,
         stderr=subprocess.STDOUT,
-        start_new_session=True,
+        start_new_session=(os.name != "nt"),
+        creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
     )
     log_handle.close()
     write_pid(process.pid)
@@ -128,6 +185,11 @@ def stop() -> int:
     if not process_is_running(pid):
         remove_pid()
         print("inactive (stale pid removed)")
+        return 0
+    if os.name == "nt":
+        subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], check=False)
+        remove_pid()
+        print("stopped")
         return 0
     try:
         os.killpg(pid, signal.SIGTERM)
@@ -159,7 +221,8 @@ def logs() -> int:
     if not LOG_FILE.exists():
         print(f"no log yet: {LOG_FILE}")
         return 0
-    subprocess.run(["tail", "-n", "80", str(LOG_FILE)], check=False)
+    lines = LOG_FILE.read_text(encoding="utf-8", errors="replace").splitlines()
+    print("\n".join(lines[-80:]))
     return 0
 
 
@@ -170,6 +233,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
+    refresh_windows_path()
     args = build_parser().parse_args()
     handlers = {
         "start": start,

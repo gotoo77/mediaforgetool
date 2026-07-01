@@ -76,3 +76,28 @@ class MediaSearchProviderUnknown(MediaForgeToolError):
 class ExtensionKeyAlreadyRegistered(MediaForgeToolError):
     code = "EXTENSION_KEY_ALREADY_REGISTERED"
     public_message = "An extension with this identifier is already registered."
+
+
+class MediaAssetUnavailable(MediaForgeToolError):
+    code = "MEDIA_ASSET_UNAVAILABLE"
+    public_message = "The requested media asset is unavailable."
+
+
+class MediaProbeFailed(MediaForgeToolError):
+    code = "MEDIA_PROBE_FAILED"
+    public_message = "The media file could not be inspected."
+
+
+class MediaEditInvalidInput(MediaForgeToolError):
+    code = "MEDIA_EDIT_INVALID_INPUT"
+    public_message = "The requested media edit inputs are invalid."
+
+
+class MediaEditIncompatibleInputs(MediaForgeToolError):
+    code = "MEDIA_EDIT_INCOMPATIBLE_INPUTS"
+    public_message = "The selected media assets are not compatible for this edit."
+
+
+class MediaEditFailed(MediaForgeToolError):
+    code = "MEDIA_EDIT_FAILED"
+    public_message = "The media edit job could not be completed."

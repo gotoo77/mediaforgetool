@@ -38,6 +38,9 @@ def test_json_formatter_includes_operational_extra_fields() -> None:
     record.status = "failed"
     record.error_code = "DOWNLOAD_FAILED"
     record.platform = "Example"
+    record.asset_id = "asset-1"
+    record.operation = "replace_audio"
+    record.outputs = 2
 
     payload = json.loads(JsonFormatter().format(record))
 
@@ -46,6 +49,9 @@ def test_json_formatter_includes_operational_extra_fields() -> None:
     assert payload["status"] == "failed"
     assert payload["error_code"] == "DOWNLOAD_FAILED"
     assert payload["platform"] == "Example"
+    assert payload["asset_id"] == "asset-1"
+    assert payload["operation"] == "replace_audio"
+    assert payload["outputs"] == 2
 
 
 def test_json_formatter_includes_context_request_id() -> None:

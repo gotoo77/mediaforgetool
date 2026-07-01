@@ -161,3 +161,51 @@ afin d'exploiter les imports et resolutions de maniere sure et diagnosticable.
 En tant que mainteneur,
 je veux valider un deuxieme importer et documenter les points d'extension,
 afin de prouver que Shazam CSV et YouTube ne sont pas codes en dur.
+
+## Epic 5: Atelier Media / Media Studio
+
+Objectif: ajouter une vue dediee de type couteau suisse media permettant de manipuler
+localement des fichiers audio et video deja produits ou importes, sans transformer
+MediaForgeTool en logiciel de montage professionnel.
+
+### Story 5.1: Socle domaine Atelier et assets media
+
+En tant que mainteneur,
+je veux disposer d'un domaine `MediaAsset` et `MediaEditJob` separe du pipeline de
+telechargement,
+afin de tracer les fichiers locaux, les operations ffmpeg et les sorties d'atelier sans
+coupler ces traitements aux `DownloadJob`.
+
+### Story 5.2: Inspection locale audio/video
+
+En tant qu'utilisateur,
+je veux que l'atelier inspecte les fichiers audio/video disponibles,
+afin de voir duree, codecs, pistes, resolution et compatibilite avant de lancer une
+operation.
+
+### Story 5.3: Jobs ffmpeg V1 de transformation simple
+
+En tant qu'utilisateur,
+je veux remplacer l'audio d'une video, retirer l'audio, extraire l'audio et decouper un
+media en deux,
+afin de realiser les corrections media les plus courantes depuis le navigateur.
+
+### Story 5.4: Vue Atelier minimale
+
+En tant qu'utilisateur,
+je veux une nouvelle vue `Atelier` claire et separee du telechargement,
+afin de choisir une operation, selectionner mes sources, regler quelques options et suivre
+le job cree.
+
+### Story 5.5: Concat audio et video
+
+En tant qu'utilisateur,
+je veux joindre plusieurs audios ou videos dans un ordre choisi,
+afin de produire un fichier final unique sans passer par un outil de montage externe.
+
+### Story 5.6: Durcissement UX, stockage et exploitation de l'atelier
+
+En tant que mainteneur,
+je veux que l'atelier expose des erreurs claires, nettoie ses temporaires et documente ses
+limites,
+afin de rester fiable et exploitable en usage self-hosted.

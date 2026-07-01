@@ -3,7 +3,7 @@
     "name": "MediaForgeTool",
     "type": "python",
     "lang": "fr",
-    "icon": "⚒️",
+    "icon": "*",
     "timeout": 1800
   },
   "menus": {
@@ -12,78 +12,95 @@
       "items": [
         {
           "label": "Sync dev",
-          "icon": "📦",
+          "icon": "*",
           "key": "i",
-          "argv": ["uv", "sync", "--dev"],
+          "argv": ["rtk", "uv", "sync", "--dev"],
           "desc": "Installe l environnement Python et les dependances de developpement"
         },
         {
           "label": "Serveur",
-          "icon": "🚀",
+          "icon": ">",
           "key": "r",
           "submenu": "server"
         },
         {
           "label": "Tests",
-          "icon": "🧪",
+          "icon": "T",
           "key": "t",
-          "argv": ["uv", "run", "pytest"]
+          "argv": ["rtk", "uv", "run", "pytest"]
         },
         {
           "label": "Lint",
-          "icon": "🔍",
+          "icon": "L",
           "key": "l",
-          "argv": ["uv", "run", "ruff", "check", "."]
+          "argv": ["rtk", "uv", "run", "ruff", "check", "."]
         },
         {
           "label": "Check complet",
-          "icon": "✅",
+          "icon": "+",
           "key": "c",
           "commands": [
-            ["uv", "run", "ruff", "check", "."],
-            ["uv", "run", "pytest"],
-            ["uv", "run", "python", "-m", "compileall", "app"]
+            ["rtk", "uv", "run", "ruff", "check", "."],
+            ["rtk", "uv", "run", "pytest"],
+            ["rtk", "uv", "run", "python", "-m", "compileall", "app"]
           ],
           "desc": "Lint, tests et compilation Python"
         },
         {
           "label": "API jobs",
-          "icon": "🌐",
+          "icon": "@",
           "key": "a",
           "argv": [
-            "bash",
-            "-lc",
-            "set -a; test -f .env && . ./.env; curl \"http://${APP_HOST:-127.0.0.1}:${APP_PORT:-8421}/api/jobs\""
+            "rtk",
+            "uv",
+            "run",
+            "python",
+            "-c",
+            "from app.core.config import get_settings; from urllib.request import urlopen; s = get_settings(); url = f'http://{s.app_host}:{s.app_port}/api/jobs'; print(urlopen(url, timeout=5).read().decode('utf-8'))"
           ],
           "desc": "Affiche l historique local si le serveur est lance"
         },
         {
-          "label": "Docker",
-          "icon": "🐳",
+          "label": "API Atelier",
+          "icon": "A",
+          "key": "m",
+          "argv": [
+            "rtk",
+            "uv",
+            "run",
+            "python",
+            "-c",
+            "from app.core.config import get_settings; from urllib.request import urlopen; s = get_settings(); url = f'http://{s.app_host}:{s.app_port}/api/studio/assets'; print(urlopen(url, timeout=5).read().decode('utf-8'))"
+          ],
+          "desc": "Affiche les assets Atelier si le serveur est lance"
+        },
+        {
+          "label": "Podman",
+          "icon": "P",
           "key": "d",
           "submenu": "docker"
         },
         {
           "label": "Docs",
-          "icon": "📚",
+          "icon": "?",
           "key": "o",
           "submenu": "docs"
         },
         {
           "label": "Git branches",
-          "icon": "🌿",
+          "icon": "G",
           "key": "g",
           "submenu": "auto:git"
         },
         {
           "label": "Historique",
-          "icon": "🕘",
+          "icon": "H",
           "key": "h",
           "action": "history"
         },
         {
           "label": "Quitter",
-          "icon": "🚪",
+          "icon": "X",
           "key": "x",
           "action": "exit"
         }
@@ -94,82 +111,99 @@
       "items": [
         {
           "label": "Start",
-          "icon": "▶️",
+          "icon": ">",
           "key": "s",
-          "argv": ["uv", "run", "python", "scripts/dev_server.py", "start"],
+          "argv": ["rtk", "uv", "run", "python", "scripts/dev_server.py", "start"],
           "desc": "Demarre MediaForgeTool en arriere-plan avec APP_HOST et APP_PORT"
         },
         {
           "label": "Stop",
-          "icon": "⏹️",
+          "icon": "x",
           "key": "x",
-          "argv": ["uv", "run", "python", "scripts/dev_server.py", "stop"],
+          "argv": ["rtk", "uv", "run", "python", "scripts/dev_server.py", "stop"],
           "desc": "Arrete le serveur de developpement"
         },
         {
           "label": "Restart",
-          "icon": "🔁",
+          "icon": "R",
           "key": "r",
-          "argv": ["uv", "run", "python", "scripts/dev_server.py", "restart"],
+          "argv": ["rtk", "uv", "run", "python", "scripts/dev_server.py", "restart"],
           "desc": "Redemarre le serveur de developpement"
         },
         {
           "label": "Status",
-          "icon": "📡",
+          "icon": "S",
           "key": "t",
-          "argv": ["uv", "run", "python", "scripts/dev_server.py", "status"],
+          "argv": ["rtk", "uv", "run", "python", "scripts/dev_server.py", "status"],
           "desc": "Affiche le PID, l URL et l etat healthcheck"
         },
         {
           "label": "Logs",
-          "icon": "📜",
+          "icon": "L",
           "key": "l",
-          "argv": ["uv", "run", "python", "scripts/dev_server.py", "logs"],
+          "argv": ["rtk", "uv", "run", "python", "scripts/dev_server.py", "logs"],
           "desc": "Affiche les dernieres lignes du log serveur"
         },
         {
           "label": "Retour",
-          "icon": "↩️",
+          "icon": "<",
           "key": "z",
           "submenu": "main"
         }
       ]
     },
     "docker": {
-      "title": "MediaForgeTool - Docker",
+      "title": "MediaForgeTool - Podman",
       "items": [
         {
           "label": "Build image",
-          "icon": "🔨",
+          "icon": "B",
           "key": "b",
-          "argv": ["docker", "build", "-t", "mediaforgetool:mvp", "."]
+          "argv": [
+            "C:\\Program Files\\RedHat\\Podman\\podman.exe",
+            "build",
+            "-t",
+            "mediaforgetool:mvp",
+            "."
+          ]
         },
         {
           "label": "Compose up",
-          "icon": "🚀",
+          "icon": ">",
           "key": "u",
           "argv": [
-            "bash",
-            "-lc",
-            "test -f .env || cp .env.example .env; docker compose up --build"
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            "if (-not (Test-Path .env)) { Copy-Item .env.example .env }; & 'C:\\Program Files\\RedHat\\Podman\\podman.exe' compose up --build"
           ],
           "desc": "Cree .env depuis .env.example si necessaire puis lance compose"
         },
         {
           "label": "Compose down",
-          "icon": "⏹️",
+          "icon": "x",
           "key": "s",
-          "argv": ["docker", "compose", "down"]
+          "argv": [
+            "C:\\Program Files\\RedHat\\Podman\\podman.exe",
+            "compose",
+            "down"
+          ]
         },
         {
           "label": "Compose logs",
-          "icon": "📜",
+          "icon": "L",
           "key": "l",
-          "argv": ["docker", "compose", "logs", "-f", "mediaforgetool"]
+          "argv": [
+            "C:\\Program Files\\RedHat\\Podman\\podman.exe",
+            "compose",
+            "logs",
+            "-f",
+            "mediaforgetool"
+          ]
         },
         {
           "label": "Retour",
-          "icon": "↩️",
+          "icon": "<",
           "key": "z",
           "submenu": "main"
         }
@@ -180,19 +214,29 @@
       "items": [
         {
           "label": "README",
-          "icon": "📄",
+          "icon": "R",
           "key": "r",
-          "argv": ["sed", "-n", "1,260p", "README.md"]
+          "argv": [
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            "Get-Content -LiteralPath README.md -TotalCount 260"
+          ]
         },
         {
           "label": "Architecture",
-          "icon": "🏗️",
+          "icon": "A",
           "key": "a",
-          "argv": ["sed", "-n", "1,240p", "docs/architecture.md"]
+          "argv": [
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            "Get-Content -LiteralPath docs/architecture.md -TotalCount 240"
+          ]
         },
         {
           "label": "Retour",
-          "icon": "↩️",
+          "icon": "<",
           "key": "z",
           "submenu": "main"
         }

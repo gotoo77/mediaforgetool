@@ -14,6 +14,8 @@ class StorageService:
 
     def prepare_directories(self) -> None:
         self.settings.storage_dir.mkdir(parents=True, exist_ok=True)
+        self.settings.media_assets_dir.mkdir(parents=True, exist_ok=True)
+        self.settings.media_studio_dir.mkdir(parents=True, exist_ok=True)
         self.settings.temp_dir.mkdir(parents=True, exist_ok=True)
 
     def temp_job_dir(self, job_id: str) -> Path:

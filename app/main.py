@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from app.api.routes import jobs, pages
+from app.api.routes import jobs, pages, studio
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging, reset_request_id, set_request_id
 from app.db.init_db import create_schema
@@ -130,6 +130,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(pages.router)
     app.include_router(jobs.router)
+    app.include_router(studio.router)
     app.mount("/static", StaticFiles(directory="app/static"), name="static")
     return app
 

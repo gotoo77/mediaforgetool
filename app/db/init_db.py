@@ -6,6 +6,10 @@ from app.models import (  # noqa: F401
     DownloadJob,
     DownloadQueueItem,
     ImportedPlaylist,
+    MediaAsset,
+    MediaEditJob,
+    MediaEditJobInput,
+    MediaEditJobOutput,
     ResolvedMediaCandidate,
     Track,
 )

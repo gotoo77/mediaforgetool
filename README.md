@@ -93,6 +93,8 @@ Phase 1 includes:
 - MP4 resolution presets and result-size estimates when the source exposes format sizes
 - optional media segment downloads, including suggested segments for long media
 - browser-created segment batches, implemented as individual background jobs
+- a local Media Studio for simple audio/video edits on known assets:
+  replace audio, remove audio, extract audio, split in two and concatenate audio or video
 - background download jobs with polling progress
 - pause and resume controls for queued or running jobs
 - minimal global local history with deletion controls
@@ -110,7 +112,7 @@ one inspected source.
 app/api/        HTTP routes and page handlers
 app/core/       configuration, logging and application errors
 app/db/         SQLAlchemy engine and schema bootstrap
-app/models/     persisted download jobs
+app/models/     persisted download jobs and Media Studio assets
 app/schemas/    request and response contracts
 app/services/   yt-dlp integration, runner, storage, cleanup and URL guard
 app/static/     browser JavaScript and CSS
@@ -120,6 +122,10 @@ app/templates/  Jinja page
 `POST /api/jobs` persists a job and pushes its identifier into a bounded in-process
 queue. Worker tasks run blocking `yt-dlp` work outside the FastAPI event loop, update
 SQLite with progress and publish only the final artifact into `storage/jobs`.
+
+Studio jobs run `ffmpeg` synchronously in the API process for the current MVP and publish
+their outputs under `storage/studio`. The same retention settings clean up expired
+Studio outputs and old orphan Studio directories.
 
 The MVP is designed for one application process. Running multiple Uvicorn workers would
 create multiple memory queues and is outside the Phase 1 model.
@@ -373,6 +379,21 @@ Download a completed output:
 GET /api/jobs/{job_id}/file
 ```
 
+Studio assets and jobs:
+
+```http
+GET /api/studio/assets
+GET /api/studio/assets/{asset_id}/inspect
+POST /api/studio/jobs
+GET /api/studio/jobs/{job_id}
+GET /api/studio/jobs/{job_id}/outputs/{position}/file
+```
+
+Supported Studio operations are `replace_audio`, `remove_audio`, `extract_audio`,
+`split_media`, `concat_audio` and `concat_video`. Audio concat re-encodes to MP3 or M4A.
+Video concat uses the fast FFmpeg concat path with `-c copy`; source videos must already
+be compatible in container, codecs and dimensions when those properties are known.
+
 ## Logs
 
 MediaForgeTool writes JSON logs to stdout. Every entry includes `timestamp`, `level`,
@@ -387,6 +408,13 @@ Common operational events include:
 | `queued_job_recovered` | A queued job was recovered during startup. |
 | `job_completed` | A media job published its final output. |
 | `job_failed` | A media job failed with an application error code. |
+| `studio_asset_imported` | A Studio output asset was registered in local storage. |
+| `studio_probe_failed` | A Studio asset could not be inspected. |
+| `studio_job_started` | A Studio job was accepted by the API. |
+| `studio_job_processing` | A Studio job entered FFmpeg processing. |
+| `studio_job_completed` | A Studio job published its output assets. |
+| `studio_job_failed` | A Studio job failed with a public error code. |
+| `studio_job_cleaned` | Cleanup removed an expired Studio job directory and records. |
 | `stale_directory_removed` | Cleanup removed an expired temporary or output directory. |
 
 Use `LOG_LEVEL` to adjust verbosity.
@@ -516,6 +544,18 @@ Retention, size, duration, concurrency and queue settings are process-local cont
 Keep `MAX_CONCURRENT_JOBS`, `MAX_QUEUE_SIZE`, `MAX_OUTPUT_SIZE_MB`,
 `MAX_MEDIA_DURATION_SECONDS`, `OUTPUT_RETENTION_HOURS` and `TEMP_RETENTION_HOURS`
 conservative for the host running the instance.
+
+## Media Studio limits
+
+The Studio is a lightweight self-hosted tool, not a full non-linear editor. Fast cuts and
+splits use stream copy, so boundaries may align to nearby keyframes depending on the
+source. Replacing audio keeps the video stream when possible and encodes the new audio as
+AAC. Extracting or concatenating audio outputs MP3 or M4A.
+
+Video concatenation intentionally uses the fast `-c copy` path. If videos differ in codec,
+resolution, audio codec or container metadata, MediaForgeTool rejects the job with
+`MEDIA_EDIT_INCOMPATIBLE_INPUTS` instead of guessing a re-encode profile. Users are
+responsible for ensuring they have the right to transform and keep the media they process.
 
 ## Tests
 

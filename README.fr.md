@@ -86,6 +86,8 @@ Ouvrez `http://127.0.0.1:8421`. Arrêtez le serveur avec `Ctrl+C`.
 - choix de la résolution MP4 et estimation de taille ;
 - téléchargement d’un extrait défini par des marqueurs temporels ;
 - création de lots de segments depuis le navigateur ;
+- Atelier local pour remplacer ou retirer l’audio, extraire l’audio, couper un média en
+  deux et concaténer plusieurs audios ou vidéos ;
 - traitement en arrière-plan avec progression ;
 - pause et reprise des travaux ;
 - historique local et téléchargement du fichier final ;
@@ -178,6 +180,11 @@ restauration.
 | Téléchargement final | `GET /api/jobs/{job_id}/file` |
 | Suppression | `DELETE /api/jobs/{job_id}` |
 | Nettoyage de l’historique | `DELETE /api/jobs` |
+| Assets Atelier | `GET /api/studio/assets` |
+| Inspection Atelier | `GET /api/studio/assets/{asset_id}/inspect` |
+| Création Atelier | `POST /api/studio/jobs` |
+| État Atelier | `GET /api/studio/jobs/{job_id}` |
+| Sortie Atelier | `GET /api/studio/jobs/{job_id}/outputs/{position}/file` |
 
 Exemple de création MP3 :
 
@@ -218,6 +225,25 @@ La configuration provient des variables d’environnement et du fichier `.env`. 
 Ne lancez pas plusieurs workers Uvicorn : chaque processus créerait sa propre file en
 mémoire.
 
+## Atelier média
+
+L’Atelier permet des opérations simples sur des médias déjà connus de l’instance :
+remplacement audio, suppression audio, extraction audio, coupe en deux, concaténation
+audio et concaténation vidéo.
+
+Limites importantes :
+
+- les coupes rapides utilisent la copie de flux et peuvent s’aligner sur une keyframe
+  proche selon la source ;
+- le remplacement audio conserve la vidéo si possible et encode la nouvelle piste en AAC ;
+- l’extraction et la concaténation audio produisent du MP3 ou du M4A ;
+- la concaténation vidéo utilise le mode rapide `-c copy` et exige des sources compatibles
+  en conteneur, codecs et dimensions lorsque ces informations sont connues ;
+- en cas d’incompatibilité, le travail échoue avec `MEDIA_EDIT_INCOMPATIBLE_INPUTS` au lieu
+  de réencoder automatiquement ;
+- l’utilisateur reste responsable des droits de transformation et de conservation des
+  médias traités.
+
 ## Cookies optionnels
 
 Certaines plateformes peuvent exiger une session authentifiée. MediaForgeTool accepte
@@ -242,6 +268,8 @@ sensibles : ne les commitez jamais et renouvelez-les en cas d’exposition.
 - une exposition publique doit encore utiliser TLS, un reverse proxy et une politique
   réseau limitant les sorties ;
 - la compatibilité dépend des évolutions des plateformes et de `yt-dlp`.
+- l’Atelier dépend aussi de `ffmpeg`/`ffprobe` et des caractéristiques réelles des fichiers
+  fournis.
 
 ## Développement
 

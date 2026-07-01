@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     allowed_hosts: list[str] = Field(default_factory=lambda: ["*"])
     database_url: str = "sqlite:///./storage/mediaforgetool.db"
     storage_dir: Path = Path("storage/jobs")
+    media_assets_dir: Path = Path("storage/assets")
+    media_studio_dir: Path = Path("storage/studio")
     temp_dir: Path = Path("temp/jobs")
     max_concurrent_jobs: int = Field(default=2, ge=1, le=8)
     max_queue_size: int = Field(default=32, ge=1, le=512)

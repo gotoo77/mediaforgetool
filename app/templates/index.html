@@ -48,6 +48,16 @@
         <h1>MediaForgeTool</h1>
       </header>
 
+      <div class="view-tabs" role="tablist" aria-label="Vues principales">
+        <button type="button" id="download-view-tab" class="quiet-button" aria-controls="download-view" aria-selected="true">
+          Telechargement
+        </button>
+        <button type="button" id="studio-view-tab" class="quiet-button" aria-controls="studio-view" aria-selected="false">
+          Atelier
+        </button>
+      </div>
+
+      <div id="download-view" class="app-view">
       <section class="workspace" aria-label="Telechargement media">
         <form id="download-form">
           <label class="url-field">
@@ -200,6 +210,105 @@
           </button>
         </div>
         <ol id="history-list"></ol>
+      </section>
+      </div>
+
+      <section id="studio-view" class="app-view studio-view" aria-labelledby="studio-title" hidden>
+        <div class="section-heading">
+          <h2 id="studio-title">Atelier</h2>
+          <button type="button" id="studio-refresh-assets" class="quiet-button">Actualiser</button>
+        </div>
+
+        <div class="studio-layout">
+          <form id="studio-form" class="studio-form">
+            <label class="select-field">
+              <span>Operation</span>
+              <select id="studio-operation" name="operation">
+                <option value="replace_audio">Remplacer l audio</option>
+                <option value="remove_audio">Retirer l audio</option>
+                <option value="extract_audio">Extraire l audio</option>
+                <option value="split_media">Decouper en deux</option>
+                <option value="concat_audio">Concatener audios</option>
+                <option value="concat_video">Concatener videos</option>
+              </select>
+            </label>
+
+            <label id="studio-source-field" class="select-field">
+              <span>Source</span>
+              <select id="studio-source-asset" name="source_asset"></select>
+            </label>
+
+            <label id="studio-audio-field" class="select-field">
+              <span>Audio</span>
+              <select id="studio-audio-asset" name="audio_asset"></select>
+            </label>
+
+            <label class="select-field">
+              <span>Nom sortie</span>
+              <input id="studio-output-name" name="output_name" type="text" maxlength="500" placeholder="mon-media.mp4" required>
+            </label>
+
+            <div id="studio-replace-options" class="studio-options">
+              <label class="select-field">
+                <span>Decalage audio</span>
+                <input id="studio-audio-offset" name="audio_offset_seconds" type="number" step="0.1" value="0">
+              </label>
+              <label class="select-field">
+                <span>Duree</span>
+                <select id="studio-duration-mode" name="duration_mode">
+                  <option value="shortest">La plus courte</option>
+                  <option value="full">Video complete</option>
+                </select>
+              </label>
+            </div>
+
+            <label id="studio-audio-format-field" class="select-field">
+              <span>Format audio</span>
+              <select id="studio-audio-format" name="audio_format">
+                <option value="mp3">MP3</option>
+                <option value="m4a">M4A</option>
+              </select>
+            </label>
+
+            <label id="studio-split-field" class="select-field">
+              <span>Coupe a</span>
+              <input id="studio-split-time" name="split_time_seconds" type="text" inputmode="numeric" placeholder="01:23 ou 83">
+            </label>
+
+            <div id="studio-concat-field" class="studio-concat-field">
+              <label class="select-field">
+                <span>Asset</span>
+                <select id="studio-concat-asset" name="concat_asset"></select>
+              </label>
+              <div class="studio-concat-actions">
+                <button type="button" id="studio-concat-add" class="quiet-button">Ajouter</button>
+                <button type="button" id="studio-concat-up" class="quiet-button">Monter</button>
+                <button type="button" id="studio-concat-down" class="quiet-button">Descendre</button>
+                <button type="button" id="studio-concat-remove" class="quiet-button">Retirer</button>
+              </div>
+              <ol id="studio-concat-list" class="studio-concat-list"></ol>
+            </div>
+
+            <button type="submit" id="studio-submit">Lancer</button>
+            <output id="studio-message" class="media-estimate" aria-live="polite"></output>
+          </form>
+
+          <section class="studio-assets" aria-labelledby="studio-assets-title">
+            <h2 id="studio-assets-title">Assets</h2>
+            <ol id="studio-asset-list" class="studio-asset-list"></ol>
+          </section>
+        </div>
+
+        <section id="studio-job" class="job-surface" hidden aria-live="polite">
+          <div class="job-line">
+            <strong id="studio-job-title">Atelier</strong>
+            <span id="studio-job-status"></span>
+          </div>
+          <progress id="studio-job-progress" max="100" value="0" aria-label="Progression du job atelier"></progress>
+          <p id="studio-job-details" class="job-details"></p>
+          <p id="studio-job-error" class="error" hidden></p>
+          <div id="studio-output-links" class="studio-output-links"></div>
+        </section>
       </section>
     </main>
     <dialog id="cleanup-report-dialog" class="report-dialog" aria-labelledby="cleanup-report-title">

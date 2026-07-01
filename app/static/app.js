@@ -51,8 +51,44 @@ const cleanupReportMessage = document.querySelector("#cleanup-report-message");
 const navToggle = document.querySelector("#nav-toggle");
 const navMenu = document.querySelector("#nav-menu");
 const topbar = document.querySelector(".topbar");
+const downloadViewTab = document.querySelector("#download-view-tab");
+const studioViewTab = document.querySelector("#studio-view-tab");
+const downloadView = document.querySelector("#download-view");
+const studioView = document.querySelector("#studio-view");
+const studioRefreshAssets = document.querySelector("#studio-refresh-assets");
+const studioForm = document.querySelector("#studio-form");
+const studioOperation = document.querySelector("#studio-operation");
+const studioSourceField = document.querySelector("#studio-source-field");
+const studioSourceAsset = document.querySelector("#studio-source-asset");
+const studioAudioField = document.querySelector("#studio-audio-field");
+const studioAudioAsset = document.querySelector("#studio-audio-asset");
+const studioOutputName = document.querySelector("#studio-output-name");
+const studioReplaceOptions = document.querySelector("#studio-replace-options");
+const studioAudioOffset = document.querySelector("#studio-audio-offset");
+const studioDurationMode = document.querySelector("#studio-duration-mode");
+const studioAudioFormatField = document.querySelector("#studio-audio-format-field");
+const studioAudioFormat = document.querySelector("#studio-audio-format");
+const studioSplitField = document.querySelector("#studio-split-field");
+const studioSplitTime = document.querySelector("#studio-split-time");
+const studioConcatField = document.querySelector("#studio-concat-field");
+const studioConcatAsset = document.querySelector("#studio-concat-asset");
+const studioConcatAdd = document.querySelector("#studio-concat-add");
+const studioConcatUp = document.querySelector("#studio-concat-up");
+const studioConcatDown = document.querySelector("#studio-concat-down");
+const studioConcatRemove = document.querySelector("#studio-concat-remove");
+const studioConcatList = document.querySelector("#studio-concat-list");
+const studioSubmit = document.querySelector("#studio-submit");
+const studioMessage = document.querySelector("#studio-message");
+const studioAssetList = document.querySelector("#studio-asset-list");
+const studioJob = document.querySelector("#studio-job");
+const studioJobTitle = document.querySelector("#studio-job-title");
+const studioJobStatus = document.querySelector("#studio-job-status");
+const studioJobProgress = document.querySelector("#studio-job-progress");
+const studioJobDetails = document.querySelector("#studio-job-details");
+const studioJobError = document.querySelector("#studio-job-error");
+const studioOutputLinks = document.querySelector("#studio-output-links");
 
-const terminalStates = new Set(["completed", "failed", "expired", "interrupted", "paused"]);
+const terminalStates = new Set(["completed", "failed", "expired", "interrupted", "paused", "cancelled"]);
 const themeStorageKey = "mediaforgetool-theme";
 const cleanupReportStorageKey = "mediaforgetool-show-cleanup-report";
 const segmentPlanStorageKey = "mediaforgetool-segment-plan";
@@ -108,11 +144,17 @@ let cutMarkers = [];
 let segmentNames = {};
 let activeBatchJobs = [];
 let renderedJob = null;
+let studioAssets = [];
+let studioPollTimer = null;
+let studioConcatSelection = [];
+let studioConcatSelectedIndex = -1;
 
 initTheme();
 initCleanupReportPreference();
 enhanceStaticControls();
 navToggle.addEventListener("click", toggleNavMenu);
+downloadViewTab.addEventListener("click", () => showAppView("download"));
+studioViewTab.addEventListener("click", () => showAppView("studio"));
 themeToggle.addEventListener("click", toggleTheme);
 clearHistoryButton.addEventListener("click", clearHistory);
 cleanupReportToggle.addEventListener("change", () => {
@@ -167,6 +209,13 @@ audioQualitySelect.addEventListener("change", renderEstimate);
 document.querySelectorAll('input[name="format"]').forEach((radio) => {
   radio.addEventListener("change", renderEstimate);
 });
+studioRefreshAssets.addEventListener("click", loadStudioAssets);
+studioOperation.addEventListener("change", renderStudioOperation);
+studioForm.addEventListener("submit", submitStudioJob);
+studioConcatAdd.addEventListener("click", addStudioConcatAsset);
+studioConcatUp.addEventListener("click", () => moveStudioConcatSelection(-1));
+studioConcatDown.addEventListener("click", () => moveStudioConcatSelection(1));
+studioConcatRemove.addEventListener("click", removeStudioConcatAsset);
 
 function initTheme() {
   const storedTheme = readStoredTheme();
@@ -198,6 +247,23 @@ function enhanceStaticControls() {
   setInlineContent(jobPause, "Pause", "pause");
   setInlineContent(jobResume, "Reprendre", "play");
   setInlineContent(jobDownload, "Recuperer le fichier", "file");
+  setInlineContent(studioRefreshAssets, "Actualiser", "search");
+  setInlineContent(studioSubmit, "Lancer", "play");
+  setInlineContent(studioConcatAdd, "Ajouter", "play");
+  setInlineContent(studioConcatUp, "Monter", "target");
+  setInlineContent(studioConcatDown, "Descendre", "target");
+  setInlineContent(studioConcatRemove, "Retirer", "trash");
+}
+
+function showAppView(view) {
+  const studio = view === "studio";
+  downloadView.hidden = studio;
+  studioView.hidden = !studio;
+  downloadViewTab.setAttribute("aria-selected", String(!studio));
+  studioViewTab.setAttribute("aria-selected", String(studio));
+  if (studio && studioAssets.length === 0) {
+    loadStudioAssets();
+  }
 }
 
 function toggleNavMenu() {
@@ -1225,8 +1291,372 @@ function apiErrorMessage(error, fallback) {
     SOURCE_NO_STREAMS:
       "Cette source demande probablement des credentials. Configure les cookies yt-dlp de l'instance, puis relance l'analyse.",
     COOKIES_UNAVAILABLE: "La source de cookies configuree est introuvable.",
+    MEDIA_ASSET_UNAVAILABLE: "Le fichier source de l atelier est introuvable.",
+    MEDIA_EDIT_INVALID_INPUT: "La selection ne correspond pas a cette operation.",
+    MEDIA_EDIT_INCOMPATIBLE_INPUTS:
+      "Ces medias ne sont pas compatibles pour une concatenation rapide.",
+    MEDIA_EDIT_FAILED: "FFmpeg n a pas pu produire la sortie demandee.",
+    MEDIA_PROBE_FAILED: "Le fichier n a pas pu etre inspecte.",
   };
   return knownMessages[error?.code] || error?.message || fallback;
+}
+
+async function loadStudioAssets() {
+  studioRefreshAssets.disabled = true;
+  studioMessage.textContent = "Chargement des assets...";
+  try {
+    const response = await fetch("/api/studio/assets");
+    const body = await response.json();
+    if (!response.ok) {
+      throw new Error(apiErrorMessage(body.detail, "Les assets ne sont pas disponibles."));
+    }
+    studioAssets = body;
+    studioConcatSelection = studioConcatSelection.filter((id) =>
+      studioAssets.some((entry) => entry.asset.id === id)
+    );
+    renderStudioAssets();
+    renderStudioOperation();
+    studioMessage.textContent = studioAssets.length === 0
+      ? "Aucun asset disponible."
+      : `${studioAssets.length} asset(s) disponible(s).`;
+  } catch (error) {
+    studioMessage.textContent = error.message;
+  } finally {
+    studioRefreshAssets.disabled = false;
+  }
+}
+
+function renderStudioAssets() {
+  if (studioAssets.length === 0) {
+    const item = document.createElement("li");
+    item.className = "studio-empty";
+    item.textContent = "Aucun media pret pour l atelier.";
+    studioAssetList.replaceChildren(item);
+    return;
+  }
+  studioAssetList.replaceChildren(...studioAssets.map(studioAssetItem));
+}
+
+function studioAssetItem(entry) {
+  const item = document.createElement("li");
+  const asset = entry.asset;
+  const title = document.createElement("strong");
+  title.textContent = asset.display_name;
+  const details = document.createElement("span");
+  details.textContent = [
+    asset.kind,
+    asset.origin,
+    durationLabel(asset.duration_seconds ?? entry.probe?.duration_seconds),
+    sizeLabel(asset.size_bytes, false),
+  ].filter(Boolean).join(" - ");
+  item.append(title, details);
+  return item;
+}
+
+function renderStudioOperation() {
+  const operation = studioOperation.value;
+  const needsAudio = operation === "replace_audio";
+  const extractsAudio = operation === "extract_audio";
+  const splits = operation === "split_media";
+  const concatenates = operation === "concat_audio" || operation === "concat_video";
+  studioAudioField.hidden = !needsAudio;
+  studioReplaceOptions.hidden = !needsAudio;
+  studioAudioFormatField.hidden = !(extractsAudio || operation === "concat_audio");
+  studioSplitField.hidden = !splits;
+  studioConcatField.hidden = !concatenates;
+  studioSourceField.hidden = concatenates;
+  studioSourceField.querySelector("span").textContent = needsAudio ? "Video" : "Source";
+  renderStudioSelect(studioSourceAsset, studioSourceAssets(operation), "Aucune source compatible");
+  renderStudioSelect(studioAudioAsset, assetsByKind("audio"), "Aucun audio compatible");
+  renderStudioSelect(
+    studioConcatAsset,
+    studioConcatAssets(operation),
+    "Aucun asset compatible",
+  );
+  renderStudioConcatList();
+  if (!studioOutputName.value.trim()) {
+    studioOutputName.value = studioDefaultOutputName(operation);
+  }
+}
+
+function renderStudioSelect(select, entries, emptyLabel) {
+  const selected = select.value;
+  const options = entries.map((entry) => new Option(studioAssetLabel(entry), entry.asset.id));
+  if (options.length === 0) {
+    options.push(new Option(emptyLabel, ""));
+  }
+  select.replaceChildren(...options);
+  if ([...select.options].some((option) => option.value === selected)) {
+    select.value = selected;
+  }
+}
+
+function studioSourceAssets(operation) {
+  if (operation === "replace_audio" || operation === "remove_audio") {
+    return assetsByKind("video");
+  }
+  if (operation === "extract_audio") {
+    return studioAssets.filter((entry) => ["video", "unknown"].includes(entry.asset.kind));
+  }
+  if (operation === "concat_audio" || operation === "concat_video") {
+    return [];
+  }
+  return studioAssets.filter((entry) => ["video", "audio", "unknown"].includes(entry.asset.kind));
+}
+
+function studioConcatAssets(operation) {
+  if (operation === "concat_audio") {
+    return assetsByKind("audio");
+  }
+  if (operation === "concat_video") {
+    return assetsByKind("video");
+  }
+  return [];
+}
+
+function assetsByKind(kind) {
+  return studioAssets.filter((entry) => entry.asset.kind === kind || entry.asset.kind === "unknown");
+}
+
+function studioAssetLabel(entry) {
+  const duration = durationLabel(entry.asset.duration_seconds ?? entry.probe?.duration_seconds);
+  return [entry.asset.display_name, duration].filter(Boolean).join(" - ");
+}
+
+function studioDefaultOutputName(operation) {
+  const names = {
+    replace_audio: "video-audio-remplace.mp4",
+    remove_audio: "video-sans-audio.mp4",
+    extract_audio: `audio.${studioAudioFormat.value}`,
+    split_media: "media-decoupe.mp4",
+    concat_audio: `audio-concatene.${studioAudioFormat.value}`,
+    concat_video: "video-concatenee.mp4",
+  };
+  return names[operation] || "media-studio.mp4";
+}
+
+function addStudioConcatAsset() {
+  if (!studioConcatAsset.value) {
+    studioMessage.textContent = "Choisis un asset a ajouter.";
+    return;
+  }
+  studioConcatSelection = [...studioConcatSelection, studioConcatAsset.value];
+  studioConcatSelectedIndex = studioConcatSelection.length - 1;
+  renderStudioConcatList();
+}
+
+function moveStudioConcatSelection(direction) {
+  const from = studioConcatSelectedIndex;
+  const to = from + direction;
+  if (from < 0 || to < 0 || to >= studioConcatSelection.length) {
+    return;
+  }
+  const next = [...studioConcatSelection];
+  [next[from], next[to]] = [next[to], next[from]];
+  studioConcatSelection = next;
+  studioConcatSelectedIndex = to;
+  renderStudioConcatList();
+}
+
+function removeStudioConcatAsset() {
+  if (studioConcatSelectedIndex < 0) {
+    return;
+  }
+  studioConcatSelection = studioConcatSelection.filter((_, index) => index !== studioConcatSelectedIndex);
+  studioConcatSelectedIndex = Math.min(studioConcatSelectedIndex, studioConcatSelection.length - 1);
+  renderStudioConcatList();
+}
+
+function renderStudioConcatList() {
+  if (studioConcatSelection.length === 0) {
+    const item = document.createElement("li");
+    item.className = "studio-empty";
+    item.textContent = "Aucun asset selectionne.";
+    studioConcatList.replaceChildren(item);
+  } else {
+    studioConcatList.replaceChildren(...studioConcatSelection.map(studioConcatItem));
+  }
+  studioConcatUp.disabled = studioConcatSelectedIndex <= 0;
+  studioConcatDown.disabled =
+    studioConcatSelectedIndex < 0 || studioConcatSelectedIndex >= studioConcatSelection.length - 1;
+  studioConcatRemove.disabled = studioConcatSelectedIndex < 0;
+}
+
+function studioConcatItem(assetId, index) {
+  const item = document.createElement("li");
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "studio-concat-item";
+  button.setAttribute("aria-pressed", String(index === studioConcatSelectedIndex));
+  button.textContent = `${index + 1}. ${studioAssetName(assetId)}`;
+  button.addEventListener("click", () => {
+    studioConcatSelectedIndex = index;
+    renderStudioConcatList();
+  });
+  item.append(button);
+  return item;
+}
+
+function studioAssetName(assetId) {
+  return studioAssets.find((entry) => entry.asset.id === assetId)?.asset.display_name || "Asset";
+}
+
+async function submitStudioJob(event) {
+  event.preventDefault();
+  studioSubmit.disabled = true;
+  studioMessage.textContent = "";
+  try {
+    const payload = studioJobPayload();
+    const response = await fetch("/api/studio/jobs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const body = await response.json();
+    if (!response.ok) {
+      throw new Error(apiErrorMessage(body.detail, "Le job atelier n a pas pu demarrer."));
+    }
+    renderStudioJob(body);
+    startStudioPolling(body.id);
+    await loadStudioAssets();
+  } catch (error) {
+    studioMessage.textContent = error.message;
+  } finally {
+    studioSubmit.disabled = false;
+  }
+}
+
+function studioJobPayload() {
+  const operation = studioOperation.value;
+  const outputName = studioOutputName.value.trim();
+  if (!outputName) {
+    throw new Error("Choisis un nom de sortie.");
+  }
+  const inputs = studioInputs(operation);
+  const payload = {
+    operation,
+    output_name: outputName,
+    inputs,
+    audio_offset_seconds: numberValue(studioAudioOffset, 0),
+    duration_mode: studioDurationMode.value,
+    audio_format: studioAudioFormat.value,
+  };
+  if (operation === "split_media") {
+    payload.split_time_seconds = parseTimecode(studioSplitTime.value);
+    if (!Number.isFinite(payload.split_time_seconds) || payload.split_time_seconds <= 0) {
+      throw new Error("Saisis un timecode de coupe valide.");
+    }
+  }
+  return payload;
+}
+
+function studioInputs(operation) {
+  if (operation === "concat_audio" || operation === "concat_video") {
+    const role = operation === "concat_audio" ? "audio" : "video";
+    if (studioConcatSelection.length < 2) {
+      throw new Error("Selectionne au moins deux assets a concatener.");
+    }
+    return studioConcatSelection.map((assetId) => ({ role, asset_id: assetId }));
+  }
+  const sourceId = studioSourceAsset.value;
+  const audioId = studioAudioAsset.value;
+  if (!sourceId) {
+    throw new Error("Choisis une source.");
+  }
+  if (operation === "replace_audio") {
+    if (!audioId) {
+      throw new Error("Choisis une piste audio.");
+    }
+    return [
+      { role: "video", asset_id: sourceId },
+      { role: "audio", asset_id: audioId },
+    ];
+  }
+  if (operation === "remove_audio") {
+    return [{ role: "video", asset_id: sourceId }];
+  }
+  return [{ role: "source", asset_id: sourceId }];
+}
+
+function numberValue(input, fallback) {
+  const value = Number.parseFloat(input.value);
+  return Number.isFinite(value) ? value : fallback;
+}
+
+function parseTimecode(value) {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return Number.NaN;
+  }
+  if (!trimmed.includes(":")) {
+    return Number.parseFloat(trimmed);
+  }
+  const parts = trimmed.split(":").map((part) => Number.parseInt(part, 10));
+  if (parts.some((part) => !Number.isFinite(part) || part < 0)) {
+    return Number.NaN;
+  }
+  return parts.reduce((total, part) => total * 60 + part, 0);
+}
+
+async function startStudioPolling(jobId) {
+  window.clearTimeout(studioPollTimer);
+  const response = await fetch(`/api/studio/jobs/${jobId}`);
+  if (!response.ok) {
+    studioMessage.textContent = "Le statut du job atelier est indisponible.";
+    return;
+  }
+  const job = await response.json();
+  renderStudioJob(job);
+  if (!terminalStates.has(job.status)) {
+    studioPollTimer = window.setTimeout(() => startStudioPolling(jobId), 1200);
+  }
+}
+
+function renderStudioJob(job) {
+  studioJob.hidden = false;
+  studioJobTitle.textContent = job.output_name || "Atelier";
+  studioJobStatus.textContent = job.status;
+  studioJobProgress.value = job.progress_percent ?? (terminalStates.has(job.status) ? 100 : 0);
+  studioJobDetails.textContent = studioJobDetailsText(job);
+  studioJobError.hidden = !job.error_message;
+  studioJobError.textContent = job.error_message || "";
+  studioOutputLinks.replaceChildren(...studioOutputLinksFor(job));
+}
+
+function studioJobDetailsText(job) {
+  const parts = [studioOperationLabel(job.operation)];
+  if (Number.isFinite(job.progress_percent)) {
+    parts.push(`${formatNumber(job.progress_percent, 1)} %`);
+  }
+  return parts.filter(Boolean).join(" - ");
+}
+
+function studioOperationLabel(operation) {
+  const labels = {
+    replace_audio: "Audio remplace",
+    remove_audio: "Audio retire",
+    extract_audio: "Audio extrait",
+    split_media: "Media decoupe",
+    concat_audio: "Audio concatene",
+    concat_video: "Video concatenee",
+  };
+  return labels[operation] || operation;
+}
+
+function studioOutputLinksFor(job) {
+  if (job.status !== "completed" || !job.outputs?.length) {
+    return [];
+  }
+  return job.outputs.map((output, index) => {
+    const link = document.createElement("a");
+    link.href = `/api/studio/jobs/${job.id}/outputs/${output.position}/file`;
+    setInlineContent(
+      link,
+      job.outputs.length > 1 ? `Sortie ${index + 1}` : "Recuperer la sortie",
+      "file",
+    );
+    return link;
+  });
 }
 
 async function loadHistory() {
@@ -1371,3 +1801,4 @@ function actionIcon(label) {
 }
 
 loadHistory();
+renderStudioOperation();

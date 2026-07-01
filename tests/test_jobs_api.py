@@ -34,6 +34,8 @@ def test_home_versions_static_assets(app_client: tuple[TestClient, object]) -> N
     assert response.status_code == 200
     assert "/static/app.css?v=" in response.text
     assert "/static/app.js?v=" in response.text
+    assert "Atelier" in response.text
+    assert "Concatener audios" in response.text
 
 
 def test_create_job_queues_valid_request(
