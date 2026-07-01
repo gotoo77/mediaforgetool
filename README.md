@@ -100,9 +100,13 @@ Phase 1 includes:
 - metadata captured when `yt-dlp` exposes title, platform, thumbnail and duration
 - automatic cleanup for temporary files and expired outputs, while preserving resumable paused or interrupted jobs
 
-It intentionally does not include accounts, OAuth, playlists, a distributed queue or
-user-supplied cookies. Batch work is limited to segment jobs created by the browser for
-one inspected source.
+It intentionally does not include accounts, OAuth, direct platform-playlist downloads,
+a distributed queue or user-supplied cookies. Imported playlist files are handled as
+local metadata and do not trigger downloads automatically. Batch media work remains
+limited to explicit user actions.
+
+Users are responsible for making sure they have the rights or authorization required
+for any media they inspect, download or convert with the instance.
 
 ## Architecture
 
@@ -317,6 +321,37 @@ Content-Type: application/json
 {"url":"https://example.invalid/media"}
 ```
 
+Import a Shazam CSV without starting any download:
+
+```http
+POST /api/playlists/import
+Content-Type: multipart/form-data
+```
+
+```bash
+curl -s http://127.0.0.1:8421/api/playlists/import \
+  -F importer_key=shazam_csv \
+  -F file=@shazam.csv
+```
+
+The CSV must provide title and artist columns. Common Shazam variants such as `Title`,
+`Track Title`, `Artist` and `Artist Name` are accepted. Invalid and duplicate rows are
+reported in the response; valid tracks are persisted for later review. Importing a list
+does not search for media or create a download job.
+
+Import a plain text list through the same endpoint:
+
+```bash
+curl -s http://127.0.0.1:8421/api/playlists/import \
+  -F importer_key=text \
+  -F file=@tracks.txt
+```
+
+Each non-empty, non-comment line must use `Artist - Title`. Lines starting with `#`
+and blank lines are ignored. Invalid lines and duplicates are reported explicitly in
+the response; valid tracks continue through the same normalizer, review, resolution and
+queue flow as CSV imports.
+
 For MP4, job creation can include a `resolution` preset such as `720`. Inspection
 returns the available presets and estimated sizes. MP3 estimates use the configured
 output bitrate and media duration, so every size remains approximate.
@@ -330,6 +365,19 @@ the platform exposes it.
 Inspection can return `segment_suggestions` for sources longer than the configured media
 duration limit. The browser can use these suggestions or custom markers to create a
 small batch of independent segment jobs for the same inspected source.
+
+### Extending playlist imports and search
+
+Playlist importers live behind `PlaylistImporterRegistry` and return normalized track
+metadata only. Register a new importer in `create_app`, give it a stable `key`, and keep
+all media lookup and download behavior out of the importer. Spotify, Deezer and Apple
+Music support should be implemented as adapters for user-provided exports, not as OAuth,
+account scraping or API bypasses. A future YouTube Playlist importer may read playlist
+metadata into tracks, but it remains separate from the YouTube search provider.
+
+Media search providers live behind `MediaSearchProviderRegistry`. They resolve a
+persisted `Track` into candidate URLs without creating jobs. Download jobs are created
+only after the user selects a candidate and submits it to the existing queue.
 
 Read status:
 
@@ -376,8 +424,9 @@ GET /api/jobs/{job_id}/file
 ## Logs
 
 MediaForgeTool writes JSON logs to stdout. Every entry includes `timestamp`, `level`,
-`logger` and `message`; request and job events can also include `request_id`, `event`,
-`job_id`, `status`, `error_code` and `platform`.
+`logger` and `message`; request, job and playlist events can also include `request_id`,
+`event`, `job_id`, `playlist_id`, `track_id`, `candidate_id`, `queue_item_id`,
+`importer`, `provider`, `status`, `error_code`, `platform` and `row_number`.
 
 Common operational events include:
 
@@ -387,6 +436,12 @@ Common operational events include:
 | `queued_job_recovered` | A queued job was recovered during startup. |
 | `job_completed` | A media job published its final output. |
 | `job_failed` | A media job failed with an application error code. |
+| `job_submitted` | A download job was accepted by the existing queue. |
+| `playlist_import_completed` / `playlist_import_partial` | A playlist import finished. |
+| `playlist_import_row_rejected` | One imported row was rejected; only row number and public code are logged. |
+| `media_search_started` / `media_search_completed` | Track resolution started or finished for a provider. |
+| `media_search_no_results` / `media_search_failed` | A provider returned no candidate or failed with a public code. |
+| `media_candidate_selected` | A resolved candidate was explicitly submitted to the download queue. |
 | `stale_directory_removed` | Cleanup removed an expired temporary or output directory. |
 
 Use `LOG_LEVEL` to adjust verbosity.
@@ -449,6 +504,10 @@ Important limits:
 | `JOB_CREATE_RATE_LIMIT_COUNT` | `10` |
 | `JOB_CREATE_RATE_LIMIT_WINDOW_SECONDS` | `60` |
 | `MAX_REQUEST_BODY_BYTES` | `1048576` |
+| `PLAYLIST_IMPORT_MAX_BYTES` | `524288` |
+| `PLAYLIST_IMPORT_MAX_TRACKS` | `500` |
+| `MEDIA_SEARCH_MAX_CANDIDATES` | `5` |
+| `MEDIA_RESOLUTION_MAX_CONCURRENCY` | `2` |
 | `MAX_OUTPUT_SIZE_MB` | `500` |
 | `MAX_MEDIA_DURATION_SECONDS` | `3600` |
 | `MP3_BITRATE_KBPS` | `192` |
@@ -456,6 +515,7 @@ Important limits:
 | `OUTPUT_RETENTION_HOURS` | `24` |
 | `TEMP_RETENTION_HOURS` | `2` |
 | `PROGRESS_UPDATE_INTERVAL_SECONDS` | `0.5` |
+| `YTDLP_SOCKET_TIMEOUT_SECONDS` | `20` |
 | `YTDLP_JS_RUNTIME` | `node` |
 | `YTDLP_JS_RUNTIME_PATH` | unset |
 | `YTDLP_COOKIES_FILE` | unset |

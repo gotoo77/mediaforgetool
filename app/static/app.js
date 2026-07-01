@@ -26,6 +26,7 @@ const resolutionField = document.querySelector("#resolution-field");
 const resolutionSelect = document.querySelector("#resolution-select");
 const audioQualityField = document.querySelector("#audio-quality-field");
 const audioQualitySelect = document.querySelector("#audio-quality-select");
+const segmentToggle = document.querySelector("#segment-toggle");
 const segmentPicker = document.querySelector("#segment-picker");
 const segmentOptions = document.querySelector("#segment-options");
 const selectFirstSegment = document.querySelector("#select-first-segment");
@@ -51,12 +52,46 @@ const cleanupReportMessage = document.querySelector("#cleanup-report-message");
 const navToggle = document.querySelector("#nav-toggle");
 const navMenu = document.querySelector("#nav-menu");
 const topbar = document.querySelector(".topbar");
+const playlistOpenButton = document.querySelector("#playlist-open-button");
+const playlistDialog = document.querySelector("#playlist-dialog");
+const historyOpenButton = document.querySelector("#history-open-button");
+const historyDialog = document.querySelector("#history-dialog");
+const playlistImportForm = document.querySelector("#playlist-import-form");
+const playlistImporterKey = document.querySelector("#playlist-importer-key");
+const playlistImportFile = document.querySelector("#playlist-import-file");
+const playlistImportFileLabel = document.querySelector("#playlist-import-file-label");
+const playlistImportHelp = document.querySelector("#playlist-import-help");
+const playlistImportButton = document.querySelector("#playlist-import-button");
+const playlistImportMessage = document.querySelector("#playlist-import-message");
+const playlistList = document.querySelector("#playlist-list");
+const playlistDetail = document.querySelector("#playlist-detail");
+const playlistDetailTitle = document.querySelector("#playlist-detail-title");
+const playlistDetailMeta = document.querySelector("#playlist-detail-meta");
+const playlistIssues = document.querySelector("#playlist-issues");
+const playlistTracks = document.querySelector("#playlist-tracks");
+const playlistPrev = document.querySelector("#playlist-prev");
+const playlistNext = document.querySelector("#playlist-next");
+const playlistPageStatus = document.querySelector("#playlist-page-status");
+const playlistFilterForm = document.querySelector("#playlist-filter-form");
+const playlistSearch = document.querySelector("#playlist-search");
+const playlistStatusFilter = document.querySelector("#playlist-status-filter");
+const playlistSort = document.querySelector("#playlist-sort");
+const playlistSortDirection = document.querySelector("#playlist-sort-direction");
+const playlistClearFilter = document.querySelector("#playlist-clear-filter");
+const playlistSelectPage = document.querySelector("#playlist-select-page");
+const playlistClearSelection = document.querySelector("#playlist-clear-selection");
+const playlistBatchResolve = document.querySelector("#playlist-batch-resolve");
+const playlistBatchQueue = document.querySelector("#playlist-batch-queue");
+const playlistBatchFormat = document.querySelector("#playlist-batch-format");
+const playlistBatchQuality = document.querySelector("#playlist-batch-quality");
+const playlistSelectionStatus = document.querySelector("#playlist-selection-status");
 
 const terminalStates = new Set(["completed", "failed", "expired", "interrupted", "paused"]);
 const themeStorageKey = "mediaforgetool-theme";
 const cleanupReportStorageKey = "mediaforgetool-show-cleanup-report";
 const segmentPlanStorageKey = "mediaforgetool-segment-plan";
 const segmentPlanSchema = "mediaforgetool.segment-plan.v1";
+const playlistPageSize = 25;
 const iconPaths = {
   details: [
     "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z",
@@ -74,10 +109,21 @@ const iconPaths = {
     "M8 13h8",
     "M8 17h5",
   ],
+  history: [
+    "M3 12a9 9 0 1 0 3-6.7",
+    "M3 3v6h6",
+    "M12 7v5l3 2",
+  ],
   menu: ["M4 7h16", "M4 12h16", "M4 17h16"],
   moon: ["M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"],
   pause: ["M10 4H6v16h4Z", "M18 4h-4v16h4Z"],
   play: ["M5 3l14 9-14 9Z"],
+  scissors: [
+    "M4.5 8.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z",
+    "M4.5 20.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z",
+    "M8.2 8.2 19 19",
+    "M8.2 15.8 19 5",
+  ],
   search: [
     "M21 21l-4.3-4.3",
     "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z",
@@ -99,6 +145,11 @@ const iconPaths = {
     "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2",
     "M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6",
   ],
+  upload: [
+    "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4",
+    "M17 8l-5-5-5 5",
+    "M12 3v12",
+  ],
 };
 let pollTimer = null;
 let batchPollTimer = null;
@@ -106,8 +157,19 @@ let inspection = null;
 let selectedSegments = [];
 let cutMarkers = [];
 let segmentNames = {};
+let segmentPanelOpen = false;
 let activeBatchJobs = [];
 let renderedJob = null;
+let selectedPlaylistId = null;
+let selectedPlaylistOffset = 0;
+let selectedPlaylistTrackIds = new Set();
+let currentPlaylistTracks = [];
+let playlistFilters = {
+  q: "",
+  resolution_status: "",
+  sort: "position",
+  direction: "asc",
+};
 
 initTheme();
 initCleanupReportPreference();
@@ -120,6 +182,10 @@ cleanupReportToggle.addEventListener("change", () => {
 });
 document.addEventListener("click", closeNavMenuOnOutsideClick);
 document.addEventListener("keydown", closeNavMenuOnEscape);
+playlistOpenButton.addEventListener("click", openPlaylistDialog);
+playlistDialog.addEventListener("close", () => playlistOpenButton.focus());
+historyOpenButton.addEventListener("click", openHistoryDialog);
+historyDialog.addEventListener("close", () => historyOpenButton.focus());
 inspectButton.addEventListener("click", inspectMedia);
 jobPause.addEventListener("click", () => {
   if (renderedJob?.id) {
@@ -132,6 +198,7 @@ jobResume.addEventListener("click", () => {
   }
 });
 mediaUrl.addEventListener("input", clearInspection);
+segmentToggle.addEventListener("click", toggleSegmentPanel);
 selectFirstSegment.addEventListener("click", () => {
   const segments = availableSegments();
   selectedSegments = segments.slice(0, 1);
@@ -154,6 +221,21 @@ exportSegmentPlan.addEventListener("click", exportCurrentSegmentPlan);
 importSegmentPlan.addEventListener("change", importSegmentPlanFile);
 addSegmentMarker.addEventListener("click", addMarkerFromInput);
 clearSegmentMarkers.addEventListener("click", resetMarkers);
+playlistImporterKey.addEventListener("change", updatePlaylistImportMode);
+playlistImportForm.addEventListener("submit", importPlaylist);
+playlistPrev.addEventListener("click", () => pagePlaylist(-playlistPageSize));
+playlistNext.addEventListener("click", () => pagePlaylist(playlistPageSize));
+playlistFilterForm.addEventListener("submit", applyPlaylistFilters);
+playlistClearFilter.addEventListener("click", clearPlaylistFilters);
+playlistSelectPage.addEventListener("click", selectCurrentPlaylistPage);
+playlistClearSelection.addEventListener("click", clearPlaylistSelection);
+playlistBatchResolve.addEventListener("click", resolveSelectedPlaylistTracks);
+playlistBatchQueue.addEventListener("click", queueSelectedPlaylistTracks);
+playlistBatchFormat.addEventListener("change", () =>
+  setCandidateOptionChoices(playlistBatchFormat, playlistBatchQuality)
+);
+setCandidateOptionChoices(playlistBatchFormat, playlistBatchQuality);
+updatePlaylistImportMode();
 document.querySelectorAll(".timecode-editor input").forEach((input) => {
   input.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
@@ -189,7 +271,10 @@ function applyTheme(theme) {
 
 function enhanceStaticControls() {
   setInlineContent(navToggle, "Menu", "menu");
+  setInlineContent(playlistOpenButton, "Importer une liste", "upload");
+  setInlineContent(historyOpenButton, "Historique", "history");
   setInlineContent(inspectButton, "Analyser", "search");
+  setInlineContent(segmentToggle, "Segments", "scissors");
   setInlineContent(submitButton, "Telecharger", "download");
   setInlineContent(clearHistoryButton, "Vider l historique", "trash");
   setInlineContent(selectFirstSegment, "Premier", "target");
@@ -198,6 +283,20 @@ function enhanceStaticControls() {
   setInlineContent(jobPause, "Pause", "pause");
   setInlineContent(jobResume, "Reprendre", "play");
   setInlineContent(jobDownload, "Recuperer le fichier", "file");
+}
+
+function openPlaylistDialog() {
+  if (!playlistDialog.open) {
+    playlistDialog.showModal();
+  }
+  loadPlaylists();
+}
+
+function openHistoryDialog() {
+  if (!historyDialog.open) {
+    historyDialog.showModal();
+  }
+  loadHistory();
 }
 
 function toggleNavMenu() {
@@ -222,6 +321,22 @@ function closeNavMenuOnEscape(event) {
   }
   setNavMenuOpen(false);
   navToggle.focus();
+}
+
+function toggleSegmentPanel() {
+  setSegmentPanelOpen(!segmentPanelOpen);
+  if (segmentPanelOpen && selectedSegments.length === 0) {
+    selectedSegments = availableSegments();
+  }
+  renderSegmentOptions();
+  renderEstimate();
+}
+
+function setSegmentPanelOpen(open) {
+  segmentPanelOpen = Boolean(open && inspection);
+  segmentToggle.disabled = !inspection;
+  segmentToggle.setAttribute("aria-expanded", String(segmentPanelOpen));
+  segmentToggle.setAttribute("aria-pressed", String(segmentPanelOpen));
 }
 
 function initCleanupReportPreference() {
@@ -328,7 +443,7 @@ form.addEventListener("submit", async (event) => {
 });
 
 function jobPayloads() {
-  const segments = selectedSegments.length > 0 ? selectedSegments : [null];
+  const segments = segmentPanelOpen && selectedSegments.length > 0 ? selectedSegments : [null];
   return segments.map((segment) => {
     const payload = {
       url: mediaUrl.value,
@@ -372,7 +487,8 @@ async function inspectMedia() {
     }
     inspection = body;
     cutMarkers = markersFromSuggestions(inspection.segment_suggestions || []);
-    selectedSegments = availableSegments();
+    selectedSegments = [];
+    setSegmentPanelOpen(false);
     resetMarkerInputs();
     renderInspection();
     renderResolutionOptions();
@@ -393,6 +509,7 @@ function clearInspection() {
   selectedSegments = [];
   cutMarkers = [];
   segmentNames = {};
+  setSegmentPanelOpen(false);
   inspectionMessage.textContent = "";
   mediaInspection.hidden = true;
   segmentPicker.hidden = true;
@@ -403,6 +520,7 @@ function clearInspection() {
   mediaThumbnail.hidden = true;
   mediaThumbnail.removeAttribute("src");
   resolutionSelect.replaceChildren(new Option("Auto", ""));
+  segmentToggle.disabled = true;
   renderEstimate();
 }
 
@@ -433,13 +551,15 @@ function renderResolutionOptions() {
 
 function renderSegmentOptions() {
   const segments = availableSegments();
-  segmentPicker.hidden = !inspection;
+  segmentPicker.hidden = !segmentPanelOpen;
   segmentOptions.replaceChildren(...segments.map(segmentButton));
   renderTimeline();
   renderMarkers();
   renderSegmentStatus();
-  if (segments.length > 0) {
+  if (segmentPanelOpen && segments.length > 0) {
     inspectionMessage.textContent = "Pose tes jalons, puis selectionne les segments a telecharger.";
+  } else if (inspection) {
+    inspectionMessage.textContent = "";
   }
 }
 
@@ -676,6 +796,9 @@ function parseTime(value) {
 }
 
 function validateSegmentsForSubmit() {
+  if (!segmentPanelOpen) {
+    return;
+  }
   const segments = availableSegments();
   selectedSegments = selectedSegments.filter((segment) =>
     segments.some((item) => sameSegment(item, segment))
@@ -763,6 +886,7 @@ function applySegmentPlan(plan) {
   if (plan.audio_bitrate_kbps) {
     audioQualitySelect.value = String(plan.audio_bitrate_kbps);
   }
+  setSegmentPanelOpen(true);
   renderSegmentOptions();
   renderEstimate();
 }
@@ -864,6 +988,9 @@ function segmentEstimate(size, segment = firstSelectedSegment()) {
 }
 
 function selectionEstimate(size) {
+  if (!segmentPanelOpen) {
+    return { size, scoped: false };
+  }
   const segments = availableSegments();
   if (!Number.isFinite(size) || !Number.isFinite(inspection?.duration_seconds)) {
     return { size, scoped: false };
@@ -1225,8 +1352,625 @@ function apiErrorMessage(error, fallback) {
     SOURCE_NO_STREAMS:
       "Cette source demande probablement des credentials. Configure les cookies yt-dlp de l'instance, puis relance l'analyse.",
     COOKIES_UNAVAILABLE: "La source de cookies configuree est introuvable.",
+    IMPORT_FILE_TOO_LARGE: "Le fichier depasse la limite de cette instance.",
+    IMPORT_FORMAT_UNSUPPORTED: "Selectionne un fichier compatible avec l'importer choisi.",
+    IMPORT_FILE_INVALID: "Le fichier ne contient aucune piste valide.",
+    IMPORT_TOO_MANY_ROWS: "Le fichier contient trop de lignes pour cette instance.",
+    TEXT_TRACK_FORMAT_INVALID: "Une ligne texte ne respecte pas le format Artiste - Titre.",
+    PLAYLIST_IMPORTER_UNKNOWN: "Cet importer de playlist n'est pas disponible.",
+    PLAYLIST_NOT_FOUND: "Cette playlist importee est introuvable.",
+    MEDIA_SEARCH_AUTH_REQUIRED: "Le provider de recherche demande une authentification.",
+    MEDIA_SEARCH_NO_RESULTS: "Aucun candidat trouve pour cette piste.",
+    MEDIA_SEARCH_PROVIDER_UNKNOWN: "Ce provider de recherche n'est pas disponible.",
+    MEDIA_SEARCH_TIMEOUT: "La recherche media a expire.",
+    MEDIA_SEARCH_UNAVAILABLE: "Le provider de recherche est temporairement indisponible.",
+    TRACK_NOT_FOUND: "Cette piste est introuvable dans la playlist.",
+    CANDIDATE_NOT_FOUND: "Ce candidat n'est pas disponible pour cette piste.",
+    QUEUE_FULL: "La queue de telechargement est pleine.",
   };
   return knownMessages[error?.code] || error?.message || fallback;
+}
+
+function updatePlaylistImportMode() {
+  const textMode = playlistImporterKey.value === "text";
+  playlistImportFile.accept = textMode ? ".txt,.text,text/plain" : ".csv,text/csv";
+  playlistImportFileLabel.textContent = textMode ? "Texte libre" : "CSV Shazam";
+  playlistImportHelp.textContent = textMode
+    ? "Une piste par ligne: Artiste - Titre. Les lignes # et vides sont ignorees."
+    : "L'import cree une playlist de revue sans lancer de telechargement.";
+}
+
+async function importPlaylist(event) {
+  event.preventDefault();
+  if (!playlistImportFile.files.length) {
+    playlistImportMessage.textContent = "Selectionne un fichier a importer.";
+    return;
+  }
+  playlistImportButton.disabled = true;
+  playlistImportMessage.textContent = "Import en cours...";
+  const data = new FormData(playlistImportForm);
+  data.set("importer_key", playlistImporterKey.value);
+  try {
+    const response = await fetch("/api/playlists/import", {
+      method: "POST",
+      body: data,
+    });
+    const body = await response.json();
+    if (!response.ok) {
+      throw new Error(apiErrorMessage(body.detail, "L'import n'a pas pu etre termine."));
+    }
+    playlistImportForm.reset();
+    updatePlaylistImportMode();
+    resetPlaylistFilterControls();
+    playlistImportMessage.textContent = playlistImportSummary(body.playlist);
+    selectedPlaylistId = body.playlist.id;
+    selectedPlaylistOffset = 0;
+    selectedPlaylistTrackIds = new Set();
+    await loadPlaylists();
+    await loadPlaylistDetail(selectedPlaylistId, 0);
+  } catch (error) {
+    playlistImportMessage.textContent = error.message;
+  } finally {
+    playlistImportButton.disabled = false;
+  }
+}
+
+function playlistImportSummary(playlist) {
+  const rejected = playlist.rejected_row_count > 0
+    ? `, ${playlist.rejected_row_count} avertissement(s)`
+    : "";
+  return `${playlist.track_count} piste(s) importee(s)${rejected}.`;
+}
+
+async function loadPlaylists() {
+  const response = await fetch("/api/playlists?limit=12");
+  if (!response.ok) {
+    return;
+  }
+  const payload = await response.json();
+  playlistList.replaceChildren(...payload.items.map(playlistListItem));
+  if (!selectedPlaylistId && payload.items.length > 0) {
+    selectedPlaylistId = payload.items[0].id;
+    selectedPlaylistOffset = 0;
+    await loadPlaylistDetail(selectedPlaylistId, selectedPlaylistOffset);
+  }
+}
+
+function playlistListItem(playlist) {
+  const item = document.createElement("li");
+  item.className = "playlist-list-item";
+  const button = document.createElement("button");
+  button.type = "button";
+  button.setAttribute("aria-pressed", String(playlist.id === selectedPlaylistId));
+  const title = document.createElement("strong");
+  title.textContent = playlist.name;
+  const meta = document.createElement("span");
+  meta.textContent = [
+    `${playlist.track_count} piste(s)`,
+    playlist.status,
+    dateTimeLabel(playlist.created_at),
+  ].filter(Boolean).join(" - ");
+  button.append(title, meta);
+  button.addEventListener("click", () => {
+    if (selectedPlaylistId !== playlist.id) {
+      selectedPlaylistTrackIds = new Set();
+    }
+    selectedPlaylistId = playlist.id;
+    selectedPlaylistOffset = 0;
+    loadPlaylistDetail(playlist.id, 0);
+  });
+  item.append(button);
+  return item;
+}
+
+async function loadPlaylistDetail(playlistId, offset) {
+  const params = new URLSearchParams({
+    limit: String(playlistPageSize),
+    offset: String(offset),
+  });
+  if (playlistFilters.q) {
+    params.set("q", playlistFilters.q);
+  }
+  if (playlistFilters.resolution_status) {
+    params.set("resolution_status", playlistFilters.resolution_status);
+  }
+  params.set("sort", playlistFilters.sort);
+  params.set("direction", playlistFilters.direction);
+  const response = await fetch(
+    `/api/playlists/${encodeURIComponent(playlistId)}?${params}`,
+  );
+  const body = await response.json();
+  if (!response.ok) {
+    playlistImportMessage.textContent = apiErrorMessage(
+      body.detail,
+      "La playlist importee n'a pas pu etre chargee.",
+    );
+    return;
+  }
+  selectedPlaylistId = playlistId;
+  selectedPlaylistOffset = body.offset;
+  renderPlaylistDetail(body);
+  await loadPlaylists();
+}
+
+function renderPlaylistDetail(detail) {
+  playlistDetail.hidden = false;
+  currentPlaylistTracks = detail.tracks;
+  playlistDetailTitle.textContent = detail.playlist.name;
+  playlistDetailMeta.textContent = [
+    `${detail.total_tracks} piste(s)`,
+    detail.playlist.status,
+    detail.playlist.source_filename,
+    playlistFilterSummary(),
+    playlistSortSummary(),
+  ].filter(Boolean).join(" - ");
+  playlistIssues.replaceChildren(...detail.issues.map(playlistIssueItem));
+  playlistIssues.hidden = detail.issues.length === 0;
+  playlistTracks.replaceChildren(...detail.tracks.map(playlistTrackItem));
+  const first = detail.total_tracks === 0 ? 0 : detail.offset + 1;
+  const last = Math.min(detail.offset + detail.tracks.length, detail.total_tracks);
+  playlistPageStatus.textContent = `${first}-${last} / ${detail.total_tracks}`;
+  playlistPrev.disabled = detail.offset <= 0;
+  playlistNext.disabled = detail.offset + detail.limit >= detail.total_tracks;
+  renderPlaylistSelectionStatus();
+}
+
+function applyPlaylistFilters(event) {
+  event.preventDefault();
+  playlistFilters = {
+    q: playlistSearch.value.trim(),
+    resolution_status: playlistStatusFilter.value,
+    sort: playlistSort.value,
+    direction: playlistSortDirection.value,
+  };
+  selectedPlaylistOffset = 0;
+  selectedPlaylistTrackIds = new Set();
+  if (selectedPlaylistId) {
+    loadPlaylistDetail(selectedPlaylistId, 0);
+  }
+}
+
+function clearPlaylistFilters() {
+  resetPlaylistFilterControls();
+  selectedPlaylistOffset = 0;
+  selectedPlaylistTrackIds = new Set();
+  if (selectedPlaylistId) {
+    loadPlaylistDetail(selectedPlaylistId, 0);
+  }
+}
+
+function resetPlaylistFilterControls() {
+  playlistSearch.value = "";
+  playlistStatusFilter.value = "";
+  playlistSort.value = "position";
+  playlistSortDirection.value = "asc";
+  playlistFilters = {
+    q: "",
+    resolution_status: "",
+    sort: "position",
+    direction: "asc",
+  };
+}
+
+function playlistFilterSummary() {
+  const parts = [];
+  if (playlistFilters.q) {
+    parts.push(`filtre: ${playlistFilters.q}`);
+  }
+  if (playlistFilters.resolution_status) {
+    parts.push(`statut: ${playlistFilters.resolution_status}`);
+  }
+  return parts.join(", ");
+}
+
+function playlistSortSummary() {
+  if (playlistFilters.sort === "position" && playlistFilters.direction === "asc") {
+    return "";
+  }
+  const labels = {
+    position: "ordre import",
+    artist: "artiste",
+    title: "titre",
+    album: "album",
+    resolution_status: "statut",
+  };
+  const direction = playlistFilters.direction === "desc" ? "desc" : "asc";
+  return `tri: ${labels[playlistFilters.sort] || playlistFilters.sort} ${direction}`;
+}
+
+function playlistIssueItem(issue) {
+  const item = document.createElement("li");
+  const row = issue.row_number ? `Ligne ${issue.row_number}: ` : "";
+  item.textContent = `${row}${issue.message}`;
+  return item;
+}
+
+function playlistTrackItem(track) {
+  const item = document.createElement("li");
+  item.className = "playlist-track";
+  const selectRow = document.createElement("label");
+  selectRow.className = "playlist-track-select";
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.checked = selectedPlaylistTrackIds.has(track.id);
+  checkbox.addEventListener("change", () => {
+    if (checkbox.checked) {
+      selectedPlaylistTrackIds.add(track.id);
+    } else {
+      selectedPlaylistTrackIds.delete(track.id);
+    }
+    renderPlaylistSelectionStatus();
+  });
+  const selectLabel = document.createElement("span");
+  selectLabel.textContent = "Selectionner";
+  selectRow.append(checkbox, selectLabel);
+  const title = document.createElement("strong");
+  title.textContent = `${track.artist} - ${track.title}`;
+  const album = document.createElement("span");
+  album.textContent = track.album || "Album non renseigne";
+  const status = document.createElement("small");
+  status.textContent = track.resolution_status;
+  const actions = document.createElement("div");
+  actions.className = "playlist-track-actions";
+  const edit = document.createElement("button");
+  edit.type = "button";
+  edit.className = "quiet-button";
+  edit.textContent = "Modifier";
+  const resolve = document.createElement("button");
+  resolve.type = "button";
+  resolve.className = "quiet-button";
+  resolve.textContent = track.resolution_status === "resolved" ? "Rechercher encore" : "Rechercher";
+  edit.addEventListener("click", () => renderTrackEditForm(item, track));
+  resolve.addEventListener("click", () => resolvePlaylistTrack(track.id, resolve));
+  actions.append(edit, resolve);
+  const queueItems = document.createElement("ol");
+  queueItems.className = "track-queue-list";
+  queueItems.replaceChildren(...(track.queue_items || []).map(queueItemLink));
+  queueItems.hidden = !track.queue_items?.length;
+  const candidates = document.createElement("ol");
+  candidates.className = "candidate-list";
+  candidates.replaceChildren(...(track.candidates || []).map((candidate) =>
+    candidateItem(candidate, track.id)
+  ));
+  candidates.hidden = !track.candidates?.length;
+  item.append(selectRow, title, album, status, actions, queueItems, candidates);
+  return item;
+}
+
+function renderTrackEditForm(item, track) {
+  const existing = item.querySelector(".playlist-track-edit");
+  if (existing) {
+    existing.remove();
+    return;
+  }
+  const form = document.createElement("form");
+  form.className = "playlist-track-edit";
+  const artist = trackEditInput("Artiste", track.artist, 300);
+  const title = trackEditInput("Titre", track.title, 500);
+  const album = trackEditInput("Album", track.album || "", 500);
+  const isrc = trackEditInput("ISRC", track.isrc || "", 20);
+  const submit = document.createElement("button");
+  submit.type = "submit";
+  submit.textContent = "Enregistrer";
+  const cancel = document.createElement("button");
+  cancel.type = "button";
+  cancel.className = "quiet-button";
+  cancel.textContent = "Annuler";
+  cancel.addEventListener("click", () => form.remove());
+  form.append(artist.label, title.label, album.label, isrc.label, submit, cancel);
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    updatePlaylistTrack(
+      track.id,
+      {
+        artist: artist.input.value,
+        title: title.input.value,
+        album: album.input.value || null,
+        isrc: isrc.input.value || null,
+      },
+      submit,
+    );
+  });
+  item.append(form);
+}
+
+function trackEditInput(labelText, value, maxLength) {
+  const label = document.createElement("label");
+  const span = document.createElement("span");
+  span.textContent = labelText;
+  const input = document.createElement("input");
+  input.type = "text";
+  input.maxLength = maxLength;
+  input.value = value;
+  input.required = labelText === "Artiste" || labelText === "Titre";
+  label.append(span, input);
+  return { label, input };
+}
+
+async function updatePlaylistTrack(trackId, payload, button) {
+  if (!selectedPlaylistId) {
+    return;
+  }
+  button.disabled = true;
+  playlistImportMessage.textContent = "Mise a jour de la piste...";
+  try {
+    const response = await fetch(
+      `/api/playlists/${encodeURIComponent(selectedPlaylistId)}/tracks/${encodeURIComponent(trackId)}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+    );
+    const body = await response.json();
+    if (!response.ok) {
+      throw new Error(apiErrorMessage(body.detail, "La piste n'a pas pu etre modifiee."));
+    }
+    playlistImportMessage.textContent = "Piste mise a jour.";
+    await loadPlaylistDetail(selectedPlaylistId, selectedPlaylistOffset);
+  } catch (error) {
+    playlistImportMessage.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function resolvePlaylistTrack(trackId, button) {
+  if (!selectedPlaylistId) {
+    return;
+  }
+  button.disabled = true;
+  playlistImportMessage.textContent = "Recherche en cours...";
+  try {
+    const response = await fetch(
+      `/api/playlists/${encodeURIComponent(selectedPlaylistId)}/tracks/${encodeURIComponent(trackId)}/resolve`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider_key: "youtube", limit: 5 }),
+      },
+    );
+    const body = await response.json();
+    if (!response.ok) {
+      throw new Error(apiErrorMessage(body.detail, "La recherche n'a pas pu etre terminee."));
+    }
+    playlistImportMessage.textContent = `${body.candidates.length} candidat(s) trouve(s).`;
+    await loadPlaylistDetail(selectedPlaylistId, selectedPlaylistOffset);
+  } catch (error) {
+    playlistImportMessage.textContent = error.message;
+    await loadPlaylistDetail(selectedPlaylistId, selectedPlaylistOffset);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function candidateItem(candidate, trackId) {
+  const item = document.createElement("li");
+  const title = document.createElement("a");
+  title.href = candidate.source_url;
+  title.rel = "noreferrer";
+  title.textContent = candidate.title;
+  const meta = document.createElement("span");
+  meta.textContent = [
+    candidate.creator,
+    durationLabel(candidate.duration_seconds),
+    candidate.provider_key,
+  ].filter(Boolean).join(" - ");
+  const controls = document.createElement("div");
+  controls.className = "candidate-actions";
+  const format = document.createElement("select");
+  format.setAttribute("aria-label", "Format a ajouter");
+  format.append(new Option("MP3", "mp3"), new Option("MP4", "mp4"));
+  const option = document.createElement("select");
+  option.setAttribute("aria-label", "Option de qualite");
+  setCandidateOptionChoices(format, option);
+  format.addEventListener("change", () => setCandidateOptionChoices(format, option));
+  const submit = document.createElement("button");
+  submit.type = "button";
+  submit.className = "quiet-button";
+  submit.textContent = "Ajouter";
+  submit.addEventListener("click", () => queueCandidate(trackId, candidate.id, format, option, submit));
+  controls.append(format, option, submit);
+  item.append(title, meta, controls);
+  return item;
+}
+
+function setCandidateOptionChoices(format, option) {
+  if (format.value === "mp4") {
+    option.replaceChildren(
+      new Option("360p", "360"),
+      new Option("480p", "480"),
+      new Option("720p", "720"),
+      new Option("1080p", "1080"),
+    );
+    option.value = "720";
+    return;
+  }
+  option.replaceChildren(
+    new Option("128 kb/s", "128"),
+    new Option("192 kb/s", "192"),
+    new Option("256 kb/s", "256"),
+    new Option("320 kb/s", "320"),
+  );
+  option.value = "192";
+}
+
+async function queueCandidate(trackId, candidateId, format, option, button) {
+  if (!selectedPlaylistId) {
+    return;
+  }
+  button.disabled = true;
+  playlistImportMessage.textContent = "Ajout a la queue...";
+  const payload = { format: format.value };
+  if (format.value === "mp4") {
+    payload.resolution = Number.parseInt(option.value, 10);
+  } else {
+    payload.audio_bitrate_kbps = Number.parseInt(option.value, 10);
+  }
+  try {
+    const response = await fetch(
+      (
+        `/api/playlists/${encodeURIComponent(selectedPlaylistId)}`
+        + `/tracks/${encodeURIComponent(trackId)}`
+        + `/candidates/${encodeURIComponent(candidateId)}/queue`
+      ),
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+    );
+    const body = await response.json();
+    if (!response.ok) {
+      throw new Error(apiErrorMessage(body.detail, "Le candidat n'a pas pu etre ajoute."));
+    }
+    playlistImportMessage.textContent = "Candidat ajoute a la queue.";
+    await loadPlaylistDetail(selectedPlaylistId, selectedPlaylistOffset);
+    await loadHistory();
+  } catch (error) {
+    playlistImportMessage.textContent = error.message;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function queueItemLink(queueItem) {
+  const item = document.createElement("li");
+  const label = document.createElement("span");
+  label.textContent = `${queueItem.requested_format.toUpperCase()} - ${queueItem.status}`;
+  item.append(label);
+  if (queueItem.download_job_id) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "inline-action";
+    button.textContent = "Historique";
+    button.addEventListener("click", openHistoryDialog);
+    item.append(button);
+  }
+  return item;
+}
+
+function selectCurrentPlaylistPage() {
+  currentPlaylistTracks.forEach((track) => selectedPlaylistTrackIds.add(track.id));
+  playlistTracks.replaceChildren(...currentPlaylistTracks.map(playlistTrackItem));
+  renderPlaylistSelectionStatus();
+}
+
+function clearPlaylistSelection() {
+  selectedPlaylistTrackIds = new Set();
+  loadPlaylistDetail(selectedPlaylistId, selectedPlaylistOffset);
+}
+
+function selectedTrackIdsOnCurrentPlaylist() {
+  return currentPlaylistTracks
+    .map((track) => track.id)
+    .filter((trackId) => selectedPlaylistTrackIds.has(trackId));
+}
+
+async function resolveSelectedPlaylistTracks() {
+  const trackIds = selectedTrackIdsOnCurrentPlaylist();
+  if (!selectedPlaylistId || trackIds.length === 0) {
+    playlistImportMessage.textContent = "Selectionne au moins une piste.";
+    return;
+  }
+  playlistBatchResolve.disabled = true;
+  playlistImportMessage.textContent = "Recherche en lot...";
+  try {
+    const response = await fetch(
+      `/api/playlists/${encodeURIComponent(selectedPlaylistId)}/tracks/resolve-batch`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          provider_key: "youtube",
+          limit: 5,
+          tracks: trackIds.map((trackId) => ({ track_id: trackId })),
+        }),
+      },
+    );
+    const body = await response.json();
+    if (!response.ok) {
+      throw new Error(apiErrorMessage(body.detail, "La recherche en lot a echoue."));
+    }
+    playlistImportMessage.textContent = batchSummary(body, "recherche");
+    await loadPlaylistDetail(selectedPlaylistId, selectedPlaylistOffset);
+  } catch (error) {
+    playlistImportMessage.textContent = error.message;
+  } finally {
+    playlistBatchResolve.disabled = false;
+  }
+}
+
+async function queueSelectedPlaylistTracks() {
+  const selectedTracks = currentPlaylistTracks.filter((track) =>
+    selectedPlaylistTrackIds.has(track.id)
+  );
+  const items = selectedTracks.flatMap((track) => {
+    const candidate = firstUnqueuedCandidate(track);
+    if (!candidate) {
+      return [];
+    }
+    const payload = { track_id: track.id, candidate_id: candidate.id, format: playlistBatchFormat.value };
+    if (playlistBatchFormat.value === "mp4") {
+      payload.resolution = Number.parseInt(playlistBatchQuality.value, 10);
+    } else {
+      payload.audio_bitrate_kbps = Number.parseInt(playlistBatchQuality.value, 10);
+    }
+    return [payload];
+  });
+  if (!selectedPlaylistId || selectedTracks.length === 0) {
+    playlistImportMessage.textContent = "Selectionne au moins une piste.";
+    return;
+  }
+  if (items.length === 0) {
+    playlistImportMessage.textContent = "Les pistes selectionnees n'ont pas de candidat disponible.";
+    return;
+  }
+  playlistBatchQueue.disabled = true;
+  playlistImportMessage.textContent = "Ajout en lot...";
+  try {
+    const response = await fetch(
+      `/api/playlists/${encodeURIComponent(selectedPlaylistId)}/tracks/queue-batch`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items }),
+      },
+    );
+    const body = await response.json();
+    if (!response.ok) {
+      throw new Error(apiErrorMessage(body.detail, "L'ajout en lot a echoue."));
+    }
+    playlistImportMessage.textContent = batchSummary(body, "ajout");
+    await loadPlaylistDetail(selectedPlaylistId, selectedPlaylistOffset);
+    await loadHistory();
+  } catch (error) {
+    playlistImportMessage.textContent = error.message;
+  } finally {
+    playlistBatchQueue.disabled = false;
+  }
+}
+
+function firstUnqueuedCandidate(track) {
+  const queuedCandidateIds = new Set((track.queue_items || []).map((item) => item.candidate_id));
+  return (track.candidates || []).find((candidate) => !queuedCandidateIds.has(candidate.id));
+}
+
+function batchSummary(batch, label) {
+  const queueFull = batch.stopped_on_queue_full ? " Queue pleine: traitement arrete." : "";
+  return `${label}: ${batch.completed_count}/${batch.requested_count} OK, ${batch.failed_count} echec(s), ${batch.skipped_count} ignore(s).${queueFull}`;
+}
+
+function renderPlaylistSelectionStatus() {
+  playlistSelectionStatus.textContent = `${selectedPlaylistTrackIds.size} piste(s) selectionnee(s)`;
+}
+
+function pagePlaylist(delta) {
+  if (!selectedPlaylistId) {
+    return;
+  }
+  const nextOffset = Math.max(0, selectedPlaylistOffset + delta);
+  loadPlaylistDetail(selectedPlaylistId, nextOffset);
 }
 
 async function loadHistory() {
@@ -1371,3 +2115,4 @@ function actionIcon(label) {
 }
 
 loadHistory();
+loadPlaylists();

@@ -63,6 +63,11 @@ class JobPaused(MediaForgeToolError):
     public_message = "The media job was paused."
 
 
+class QueueFull(MediaForgeToolError):
+    code = "QUEUE_FULL"
+    public_message = "This instance already has too many pending media jobs."
+
+
 class PlaylistImporterUnknown(MediaForgeToolError):
     code = "PLAYLIST_IMPORTER_UNKNOWN"
     public_message = "The requested playlist importer is unavailable."
@@ -73,6 +78,51 @@ class MediaSearchProviderUnknown(MediaForgeToolError):
     public_message = "The requested media search provider is unavailable."
 
 
+class MediaSearchAuthenticationRequired(MediaForgeToolError):
+    code = "MEDIA_SEARCH_AUTH_REQUIRED"
+    public_message = "The media search provider requires authentication."
+
+
+class MediaSearchNoResults(MediaForgeToolError):
+    code = "MEDIA_SEARCH_NO_RESULTS"
+    public_message = "The media search provider returned no candidate."
+
+
+class MediaSearchTimeout(MediaForgeToolError):
+    code = "MEDIA_SEARCH_TIMEOUT"
+    public_message = "The media search provider timed out."
+
+
+class MediaSearchUnavailable(MediaForgeToolError):
+    code = "MEDIA_SEARCH_UNAVAILABLE"
+    public_message = "The media search provider is temporarily unavailable."
+
+
+class CandidateNotFound(MediaForgeToolError):
+    code = "CANDIDATE_NOT_FOUND"
+    public_message = "The selected media candidate was not found for this track."
+
+
 class ExtensionKeyAlreadyRegistered(MediaForgeToolError):
     code = "EXTENSION_KEY_ALREADY_REGISTERED"
     public_message = "An extension with this identifier is already registered."
+
+
+class PlaylistImportFileTooLarge(MediaForgeToolError):
+    code = "IMPORT_FILE_TOO_LARGE"
+    public_message = "The playlist file exceeds this instance limit."
+
+
+class PlaylistImportTooManyRows(MediaForgeToolError):
+    code = "IMPORT_TOO_MANY_ROWS"
+    public_message = "The playlist contains too many rows for this instance."
+
+
+class PlaylistImportFormatUnsupported(MediaForgeToolError):
+    code = "IMPORT_FORMAT_UNSUPPORTED"
+    public_message = "Upload a supported playlist file type."
+
+
+class PlaylistImportFileInvalid(MediaForgeToolError):
+    code = "IMPORT_FILE_INVALID"
+    public_message = "The playlist file could not be imported."

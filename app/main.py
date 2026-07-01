@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from app.api.routes import jobs, pages
+from app.api.routes import jobs, pages, playlists
 from app.core.config import Settings, get_settings
 from app.core.logging import configure_logging, reset_request_id, set_request_id
 from app.db.init_db import create_schema
@@ -17,6 +17,9 @@ from app.db.session import build_engine, build_session_factory
 from app.services.cleanup_service import CleanupService
 from app.services.job_runner import JobRunner
 from app.services.media_downloader import MediaDownloader
+from app.services.media_search import MediaSearchProviderRegistry, YouTubeSearchProvider
+from app.services.playlist_import import PlainTextImporter, PlaylistImporterRegistry
+from app.services.playlist_import.shazam_csv import ShazamCsvImporter
 from app.services.rate_limiter import SlidingWindowRateLimiter
 from app.services.storage_service import StorageService
 
@@ -58,6 +61,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             limit=app_settings.job_create_rate_limit_count,
             window_seconds=app_settings.job_create_rate_limit_window_seconds,
         )
+        playlist_importer_registry = PlaylistImporterRegistry()
+        playlist_importer_registry.register(
+            ShazamCsvImporter(max_tracks=app_settings.playlist_import_max_tracks)
+        )
+        playlist_importer_registry.register(
+            PlainTextImporter(max_tracks=app_settings.playlist_import_max_tracks)
+        )
+        media_search_provider_registry = MediaSearchProviderRegistry()
+        media_search_provider_registry.register(YouTubeSearchProvider(app_settings))
 
         app.state.settings = app_settings
         app.state.engine = engine
@@ -65,6 +77,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.job_runner = runner
         app.state.cleanup_service = cleanup
         app.state.job_rate_limiter = rate_limiter
+        app.state.playlist_importer_registry = playlist_importer_registry
+        app.state.media_search_provider_registry = media_search_provider_registry
 
         await runner.start()
         await cleanup.start()
@@ -130,6 +144,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(pages.router)
     app.include_router(jobs.router)
+    app.include_router(playlists.router)
     app.mount("/static", StaticFiles(directory="app/static"), name="static")
     return app
 

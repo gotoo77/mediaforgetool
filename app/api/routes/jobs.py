@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_job_rate_limiter, get_job_runner, get_settings_from_app
 from app.core.config import Settings
-from app.core.exceptions import InvalidMediaUrl, MediaForgeToolError
+from app.core.exceptions import InvalidMediaUrl, MediaForgeToolError, QueueFull
 from app.db.session import get_session
 from app.models.job import DownloadJob, JobStatus
 from app.schemas.job import (
@@ -18,6 +18,7 @@ from app.schemas.job import (
     MediaInspectionResponse,
 )
 from app.services.job_runner import JobRunner
+from app.services.job_submission import JobSubmissionService
 from app.services.media_downloader import MediaDownloader
 from app.services.rate_limiter import SlidingWindowRateLimiter
 from app.services.storage_service import StorageService
@@ -61,37 +62,23 @@ def create_job(
     rate_limiter: SlidingWindowRateLimiter = Depends(get_job_rate_limiter),
 ) -> DownloadJob:
     _enforce_rate_limit(request, rate_limiter)
-    url = _validated_url(payload.url, settings)
-
-    job = DownloadJob(
-        source_url=url,
-        requested_format=payload.format,
-        requested_height=payload.resolution if payload.format.value == "mp4" else None,
-        requested_audio_bitrate_kbps=(
-            payload.audio_bitrate_kbps if payload.format.value == "mp3" else None
-        ),
-        segment_start_seconds=payload.segment_start_seconds,
-        segment_end_seconds=payload.segment_end_seconds,
-        title=_job_title(payload),
-        platform=payload.platform,
-        thumbnail_url=payload.thumbnail_url,
-        duration_seconds=_job_duration(payload),
-        total_bytes=payload.estimated_total_bytes,
-    )
-    _validate_segment_duration(payload, settings)
-    session.add(job)
-    session.commit()
-    session.refresh(job)
-    if not runner.enqueue(job.id):
-        job.status = JobStatus.failed
-        job.error_code = "QUEUE_FULL"
-        job.error_message = "This instance already has too many pending media jobs."
-        session.commit()
+    try:
+        return JobSubmissionService(
+            session,
+            runner,
+            settings,
+            url_validator=validate_public_media_url,
+        ).submit(payload)
+    except QueueFull as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={"code": "QUEUE_FULL", "message": job.error_message},
-        )
-    return job
+            detail={"code": exc.code, "message": exc.public_message},
+        ) from exc
+    except MediaForgeToolError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=_error_detail(exc, settings),
+        ) from exc
 
 
 @router.get("", response_model=list[JobResponse])
@@ -294,43 +281,3 @@ def _enforce_rate_limit(request: Request, rate_limiter: SlidingWindowRateLimiter
         },
         headers={"Retry-After": str(rate_limit.retry_after_seconds)},
     )
-
-
-def _validate_segment_duration(payload: CreateJobRequest, settings: Settings) -> None:
-    if payload.segment_start_seconds is None or payload.segment_end_seconds is None:
-        return
-    segment_duration = payload.segment_end_seconds - payload.segment_start_seconds
-    if segment_duration <= settings.max_media_duration_seconds:
-        return
-    raise HTTPException(
-        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-        detail={
-            "code": "MEDIA_TOO_LONG",
-            "message": "The requested media segment exceeds this instance limit.",
-        },
-    )
-
-
-def _job_duration(payload: CreateJobRequest) -> int | None:
-    if payload.segment_start_seconds is not None and payload.segment_end_seconds is not None:
-        return payload.segment_end_seconds - payload.segment_start_seconds
-    return payload.duration_seconds
-
-
-def _job_title(payload: CreateJobRequest) -> str | None:
-    title = payload.title
-    if not title:
-        return None
-    if payload.segment_start_seconds is None or payload.segment_end_seconds is None:
-        return title
-    start = _time_label(payload.segment_start_seconds)
-    end = _time_label(payload.segment_end_seconds)
-    return f"{title} [{start}-{end}]"
-
-
-def _time_label(seconds: int) -> str:
-    hours, remainder = divmod(seconds, 3600)
-    minutes, seconds = divmod(remainder, 60)
-    if hours:
-        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-    return f"{minutes:02d}:{seconds:02d}"

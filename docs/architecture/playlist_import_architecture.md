@@ -65,10 +65,12 @@ class PlaylistImporter(Protocol):
     ) -> ImportResult: ...
 ```
 
-Les implementations prevues sont `shazam_csv`, `plain_text`, puis des adaptateurs
-d'exports Spotify, Deezer et Apple Music. Un importer YouTube Playlist pourra extraire
-les entrees d'une liste comme metadonnees, mais ne doit pas contourner la selection et la
-queue de telechargement.
+Les implementations initiales sont `shazam_csv` et `text`, puis des adaptateurs
+d'exports utilisateur Spotify, Deezer et Apple Music. Ces adaptateurs doivent parser des
+fichiers fournis par l'utilisateur, pas contourner OAuth, les API ou les controles
+d'acces des plateformes. Un importer YouTube Playlist pourra extraire les entrees d'une
+liste comme metadonnees, mais il reste distinct du provider de recherche YouTube et ne
+doit pas contourner la selection ni la queue de telechargement.
 
 ### Normalisation des metadonnees
 
@@ -122,6 +124,40 @@ class MediaSearchProvider(Protocol):
 Le provider YouTube initial peut utiliser `yt-dlp` avec une requete de recherche et
 `download=False`. Il doit rester separe de `MediaDownloader`, qui traite une URL deja
 selectionnee et applique les options de conversion.
+
+## Guide d'extension
+
+### Ajouter un importer
+
+1. Creer une implementation du protocole `PlaylistImporter` dans
+   `app/services/playlist_import/`.
+2. Definir une cle stable et explicite, par exemple `spotify_export`.
+3. Parser uniquement le fichier fourni par l'utilisateur et retourner des
+   `ImportedTrack`; ne pas appeler de provider de recherche et ne pas creer de job.
+4. Normaliser via `TrackNormalizer` pour conserver le meme comportement de deduplication,
+   de revue, de resolution et de queue.
+5. Reporter les lignes invalides avec `ImportIssue` et un code public stable.
+6. Enregistrer l'importer dans `create_app` via `PlaylistImporterRegistry.register(...)`.
+
+Le format texte libre montre le contrat minimal: chaque ligne utile devient une piste,
+les commentaires et lignes vides sont ignores, et les lignes invalides restent des
+issues d'import sans bloquer les pistes valides.
+
+### Ajouter un provider de recherche
+
+1. Creer une implementation du protocole `MediaSearchProvider` dans
+   `app/services/media_search/`.
+2. Definir une cle stable, par exemple `youtube`, `soundcloud` ou `local_catalog`.
+3. Transformer une `TrackQuery` en requete provider et retourner des `SearchCandidate`
+   bornes par `limit`.
+4. Ne pas creer de `DownloadJob`, ne pas selectionner automatiquement le premier resultat
+   et ne pas publier de fichier.
+5. Enregistrer le provider dans `create_app` via
+   `MediaSearchProviderRegistry.register(...)`.
+
+Un importer YouTube Playlist et le provider de recherche YouTube resolvent deux
+problemes differents. Le premier lit une liste en metadonnees locales; le second cherche
+des candidats pour une piste deja importee.
 
 ### Selection du resultat
 

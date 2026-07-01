@@ -114,6 +114,11 @@ class ImportedPlaylist(Base):
         cascade="all, delete-orphan",
         order_by="Track.position",
     )
+    issues: Mapped[list["PlaylistImportIssue"]] = relationship(
+        back_populates="playlist",
+        cascade="all, delete-orphan",
+        order_by="PlaylistImportIssue.position",
+    )
 
     def transition_to(self, status: PlaylistStatus) -> None:
         current = self.status or PlaylistStatus.importing
@@ -188,6 +193,36 @@ class Track(Base):
     @validates("duration_seconds")
     def validate_duration(self, key: str, value: int | None) -> int | None:
         return _optional_non_negative_integer(key, value)
+
+
+class PlaylistImportIssue(Base):
+    __tablename__ = "playlist_import_issues"
+    __table_args__ = (UniqueConstraint("playlist_id", "position"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    playlist_id: Mapped[str] = mapped_column(
+        ForeignKey("imported_playlists.id", ondelete="CASCADE"),
+        index=True,
+    )
+    position: Mapped[int] = mapped_column(Integer)
+    row_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    code: Mapped[str] = mapped_column(String(80))
+    message: Mapped[str] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+    playlist: Mapped[ImportedPlaylist] = relationship(back_populates="issues")
+
+    @validates("position")
+    def validate_position(self, key: str, value: int) -> int:
+        return _non_negative_integer(key, value)
+
+    @validates("row_number")
+    def validate_row_number(self, key: str, value: int | None) -> int | None:
+        return _optional_non_negative_integer(key, value)
+
+    @validates("code", "message")
+    def validate_required_text(self, key: str, value: str) -> str:
+        return _required_text(key, value)
 
 
 class ResolvedMediaCandidate(Base):

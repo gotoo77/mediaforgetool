@@ -48,12 +48,17 @@ development_status:
   3-4-protection-des-jobs-pauses-contre-la-purge: done
   3-5-conservation-des-temporaires-reprenables: done
   epic-3-retrospective: done
-  epic-4: in-progress
-  4-1-contrats-de-domaine-et-points-d-extension: review
-  4-2-import-et-normalisation-d-un-csv-shazam: backlog
-  4-3-consultation-d-une-playlist-et-revue-des-pistes: backlog
-  4-4-provider-de-recherche-youtube: backlog
-  4-5-selection-d-un-candidat-et-ajout-a-la-queue-existante: backlog
-  4-6-resolution-et-ajout-en-lot-controles: backlog
-  4-7-observabilite-erreurs-et-limites-d-exploitation: backlog
-  4-8-importer-texte-libre-et-guide-d-extension: backlog
+  epic-4: done
+  4-1-contrats-de-domaine-et-points-d-extension: done
+  4-2-import-et-normalisation-d-un-csv-shazam: done
+  4-3-consultation-d-une-playlist-et-revue-des-pistes: done
+  4-4-provider-de-recherche-youtube: done
+  4-5-selection-d-un-candidat-et-ajout-a-la-queue-existante: done
+  4-6-resolution-et-ajout-en-lot-controles: done
+  4-7-observabilite-erreurs-et-limites-d-exploitation: done
+  4-8-importer-texte-libre-et-guide-d-extension: done
+  epic-4-retrospective: done
+  epic-5: in-progress
+  5-1-recherche-et-filtre-des-pistes-importees: review
+  5-2-tri-des-pistes-importees: review
+  5-3-edition-locale-des-metadonnees-de-piste: review
