@@ -280,8 +280,9 @@ also publish versioned image tags such as `1.0.0` and `1.0`.
 
 ## Backup and restore
 
-MediaForgeTool persists SQLite state in `storage/mediaforgetool.db` and completed outputs under
-`storage/jobs`. Create a backup archive with:
+MediaForgeTool persists SQLite state in `storage/mediaforgetool.db`, completed download
+outputs under `storage/jobs`, source assets under `storage/assets` and Studio outputs
+under `storage/studio`. Create a backup archive with:
 
 ```bash
 uv run python scripts/storage_backup.py create --output backups/mediaforgetool.tar.gz

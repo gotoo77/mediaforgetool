@@ -6,31 +6,53 @@ import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
-DEFAULT_DATABASE = Path("storage/mediaforgetool.db")
-DEFAULT_JOBS_DIR = Path("storage/jobs")
+DEFAULT_STORAGE_DIR = Path("storage")
+DEFAULT_DATABASE = DEFAULT_STORAGE_DIR / "mediaforgetool.db"
+DEFAULT_JOBS_DIR = DEFAULT_STORAGE_DIR / "jobs"
 
 
-def create_backup(database: Path, jobs_dir: Path, output: Path | None = None) -> Path:
+def create_backup(
+    database: Path,
+    jobs_dir: Path,
+    output: Path | None = None,
+    storage_dir: Path | None = None,
+) -> Path:
     timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     backup_path = output or Path(f"mediaforgetool-backup-{timestamp}.tar.gz")
     backup_path.parent.mkdir(parents=True, exist_ok=True)
+    source_storage = storage_dir or database.parent
 
     with tempfile.TemporaryDirectory() as temp_name:
         temp_dir = Path(temp_name)
         payload_dir = temp_dir / "storage"
         payload_dir.mkdir()
 
+        if source_storage.exists():
+            _copy_storage_tree(source_storage, payload_dir, database)
         if database.exists():
             _backup_sqlite(database, payload_dir / "mediaforgetool.db")
-        if jobs_dir.exists():
+        if not (payload_dir / "jobs").exists() and jobs_dir.exists():
             shutil.copytree(jobs_dir, payload_dir / "jobs")
-        else:
+        if not (payload_dir / "jobs").exists():
             (payload_dir / "jobs").mkdir()
 
         with tarfile.open(backup_path, "w:gz") as archive:
             archive.add(payload_dir, arcname="storage")
 
     return backup_path
+
+
+def _copy_storage_tree(source_storage: Path, payload_dir: Path, database: Path) -> None:
+    source_storage = source_storage.resolve()
+    database = database.resolve()
+    for item in source_storage.iterdir():
+        if item.resolve() == database:
+            continue
+        target = payload_dir / item.name
+        if item.is_dir():
+            shutil.copytree(item, target)
+        elif item.is_file():
+            shutil.copy2(item, target)
 
 
 def restore_backup(archive_path: Path, target_storage: Path, force: bool = False) -> None:
@@ -55,9 +77,13 @@ def restore_backup(archive_path: Path, target_storage: Path, force: bool = False
 
 def _backup_sqlite(source: Path, destination: Path) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(source) as source_connection:
-        with sqlite3.connect(destination) as destination_connection:
-            source_connection.backup(destination_connection)
+    source_connection = sqlite3.connect(source)
+    destination_connection = sqlite3.connect(destination)
+    try:
+        source_connection.backup(destination_connection)
+    finally:
+        destination_connection.close()
+        source_connection.close()
 
 
 def _safe_extract(archive: tarfile.TarFile, destination: Path) -> None:
@@ -66,7 +92,7 @@ def _safe_extract(archive: tarfile.TarFile, destination: Path) -> None:
         target = (destination / member.name).resolve()
         if destination not in target.parents and target != destination:
             raise RuntimeError(f"Unsafe path in backup archive: {member.name}")
-    archive.extractall(destination)
+    archive.extractall(destination, filter="data")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -74,6 +100,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     create = subparsers.add_parser("create", help="Create a compressed storage backup.")
+    create.add_argument("--storage-dir", type=Path, default=DEFAULT_STORAGE_DIR)
     create.add_argument("--database", type=Path, default=DEFAULT_DATABASE)
     create.add_argument("--jobs-dir", type=Path, default=DEFAULT_JOBS_DIR)
     create.add_argument("--output", type=Path)
@@ -89,7 +116,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     args = build_parser().parse_args()
     if args.command == "create":
-        backup_path = create_backup(args.database, args.jobs_dir, args.output)
+        backup_path = create_backup(args.database, args.jobs_dir, args.output, args.storage_dir)
         print(backup_path)
         return
     restore_backup(args.archive, args.target_storage, args.force)

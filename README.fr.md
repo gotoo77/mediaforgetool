@@ -145,8 +145,9 @@ temporaires et cookies locaux ne sont jamais copiés dans l’image Docker.
 
 ## Sauvegarde et restauration
 
-MediaForgeTool stocke la base dans `storage/mediaforgetool.db` et les sorties dans
-`storage/jobs`.
+MediaForgeTool stocke la base dans `storage/mediaforgetool.db`, les sorties de
+téléchargement dans `storage/jobs`, les assets source dans `storage/assets` et les
+sorties Atelier dans `storage/studio`.
 
 Créer une sauvegarde :
 
